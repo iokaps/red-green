@@ -1,3 +1,4 @@
+import { withKmProviders } from '@/components/with-km-providers';
 import { config } from '@/config';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useGlobalController } from '@/hooks/useGlobalController';
@@ -7,13 +8,16 @@ import { kmClient } from '@/services/km-client';
 import { globalStore } from '@/state/stores/global-store';
 import { cn } from '@/utils/cn';
 import { ConnectionsView } from '@/views/connections-view';
+import { PresenterGameView } from '@/views/presenter-game-view';
 import { useSnapshot } from '@kokimoki/app';
 import { KmQrCode } from '@kokimoki/shared';
 import * as React from 'react';
 
 const App: React.FC = () => {
 	const { title } = config;
-	const { showPresenterQr } = useSnapshot(globalStore.proxy);
+	const { showPresenterQr, started, gamePhase } = useSnapshot(
+		globalStore.proxy
+	);
 
 	useGlobalController();
 	useDocumentTitle(title);
@@ -26,23 +30,33 @@ const App: React.FC = () => {
 		mode: 'player'
 	});
 
-	return (
-		<>
+	// Show game view when game is active
+	if (started || gamePhase !== 'lobby') {
+		return (
 			<HostPresenterLayout.Root>
-				<HostPresenterLayout.Header />
-
-				<HostPresenterLayout.Main>
-					<ConnectionsView>
-						<KmQrCode
-							data={playerLink}
-							size={200}
-							className={cn(!showPresenterQr && 'invisible')}
-						/>
-					</ConnectionsView>
+				<HostPresenterLayout.Main className="p-0">
+					<PresenterGameView />
 				</HostPresenterLayout.Main>
 			</HostPresenterLayout.Root>
-		</>
+		);
+	}
+
+	// Lobby view with QR code
+	return (
+		<HostPresenterLayout.Root>
+			<HostPresenterLayout.Header />
+
+			<HostPresenterLayout.Main>
+				<ConnectionsView>
+					<KmQrCode
+						data={playerLink}
+						size={200}
+						className={cn(!showPresenterQr && 'invisible')}
+					/>
+				</ConnectionsView>
+			</HostPresenterLayout.Main>
+		</HostPresenterLayout.Root>
 	);
 };
 
-export default App;
+export default withKmProviders(App);

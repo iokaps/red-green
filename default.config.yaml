@@ -93,3 +93,71 @@ openPlayerHelpButton: 'Force Players Help to Open'
 
 menuAriaLabel: 'Open menu drawer'
 menuHelpAriaLabel: 'Open help drawer'
+
+# Game phase settings (in milliseconds)
+goPhaseDurationMs: 5000
+warningPhaseDurationMs: 1500
+freezePhaseDurationMs: 3000
+
+# Variable phase length ranges
+goPhaseMinMs: 3000
+goPhaseMaxMs: 7000
+freezePhaseMinMs: 2000
+freezePhaseMaxMs: 5000
+variablePhasesEnabled: true
+
+# Shake detection settings
+shakeThreshold: 12
+
+# Progress calculation weights
+magnitudeWeight: 0.01
+activeCountWeight: 0.5
+
+# Penalty settings
+freezeViolationThreshold: 0.05
+penaltyDistance: 10
+totalDistance: 100
+
+# Team selection view
+teamSelectTitle: 'Choose Your Team'
+teamSelectDescription: 'Pick a team and help them steal the trophy!'
+motionPermissionDescription: 'This game uses your phone motion sensor. Please enable it to play.'
+motionPermissionButton: 'Enable Motion Sensor'
+motionPermissionGranted: 'Motion sensor enabled!'
+
+# Team manager (host)
+teamManagerTitle: 'Team Manager'
+teamManagerDescription: 'Click the arrows to move players between teams'
+teamsBalanced: 'Teams are balanced'
+teamsUnbalanced: 'Teams unbalanced by {diff} players'
+noPlayersOnTeam: 'No players yet'
+unassignedPlayers: 'Unassigned Players'
+moveToRed: 'Move to Red team'
+moveToBlue: 'Move to Blue team'
+redTeamShort: 'Red'
+blueTeamShort: 'Blue'
+
+# Game phase text
+goPhaseText: 'GO!'
+warningPhaseText: 'WARNING!'
+freezePhaseText: 'FREEZE!'
+
+# Player game view
+shakeIntensityLabel: 'Shake Intensity'
+movementDetected: '⚠️ Movement detected!'
+goPhaseInstruction: 'Shake your phone to move your team forward!'
+warningPhaseInstruction: 'Get ready to freeze...'
+freezePhaseInstruction: 'Hold perfectly still! Any movement = penalty!'
+
+# Victory
+victoryText: 'WINS!'
+waitingForTeam: 'Waiting for game to start...'
+
+# MVP Spotlight
+mvpSpotlightEnabled: true
+mvpLabel: '⭐ TOP SHAKER'
+
+# Traitor Mode
+traitorModeEnabled: false
+traitorSecretMessage: '🔥 You are the TRAITOR! Shake during FREEZE to help the other team!'
+traitorRevealMessage: 'The traitor was revealed!'

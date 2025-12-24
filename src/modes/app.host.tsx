@@ -4,18 +4,26 @@ import { useGlobalController } from '@/hooks/useGlobalController';
 import { generateLink } from '@/kit/generate-link';
 import { HostPresenterLayout } from '@/layouts/host-presenter';
 import { kmClient } from '@/services/km-client';
+import { gameActions } from '@/state/actions/game-actions';
 import { globalActions } from '@/state/actions/global-actions';
 import { globalStore } from '@/state/stores/global-store';
-import { SharedStateView } from '@/views/shared-state-view';
+import { HostTeamManager } from '@/views/host-team-manager';
 import { useSnapshot } from '@kokimoki/app';
-import { CirclePlay, CircleStop, SquareArrowOutUpRight } from 'lucide-react';
+import {
+	CirclePlay,
+	CircleStop,
+	RotateCcw,
+	SquareArrowOutUpRight
+} from 'lucide-react';
 import * as React from 'react';
 
 const App: React.FC = () => {
 	useGlobalController();
 	const { title } = config;
 	const isHost = kmClient.clientContext.mode === 'host';
-	const { started, showPresenterQr } = useSnapshot(globalStore.proxy);
+	const { started, showPresenterQr, gamePhase } = useSnapshot(
+		globalStore.proxy
+	);
 	const [buttonCooldown, setButtonCooldown] = React.useState(true);
 	useDocumentTitle(title);
 
@@ -42,12 +50,26 @@ const App: React.FC = () => {
 		playerCode: kmClient.clientContext.playerCode
 	});
 
+	const handleStartGame = async () => {
+		await globalActions.startGame();
+		await gameActions.transitionPhase('go');
+	};
+
+	const handleStopGame = async () => {
+		await globalActions.stopGame();
+		await gameActions.resetGame();
+	};
+
+	const handleResetGame = async () => {
+		await gameActions.resetGame();
+	};
+
 	return (
 		<HostPresenterLayout.Root>
 			<HostPresenterLayout.Header />
 			<HostPresenterLayout.Main>
-				<div className="space-y-4">
-					<SharedStateView />
+				<div className="space-y-6">
+					<HostTeamManager />
 
 					<button
 						type="button"
@@ -61,11 +83,11 @@ const App: React.FC = () => {
 
 			<HostPresenterLayout.Footer>
 				<div className="inline-flex gap-4">
-					{!started && isHost && (
+					{!started && gamePhase === 'lobby' && isHost && (
 						<button
 							type="button"
 							className="km-btn-primary"
-							onClick={globalActions.startGame}
+							onClick={handleStartGame}
 							disabled={buttonCooldown}
 						>
 							<CirclePlay className="size-5" />
@@ -76,11 +98,22 @@ const App: React.FC = () => {
 						<button
 							type="button"
 							className="km-btn-error"
-							onClick={globalActions.stopGame}
+							onClick={handleStopGame}
 							disabled={buttonCooldown}
 						>
 							<CircleStop className="size-5" />
 							{config.stopButton}
+						</button>
+					)}
+					{gamePhase === 'victory' && !started && isHost && (
+						<button
+							type="button"
+							className="km-btn-secondary"
+							onClick={handleResetGame}
+							disabled={buttonCooldown}
+						>
+							<RotateCcw className="size-5" />
+							{config.resetButton}
 						</button>
 					)}
 				</div>
