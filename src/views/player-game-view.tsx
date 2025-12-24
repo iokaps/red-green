@@ -4,6 +4,7 @@ import { useServerTimer } from '@/hooks/useServerTime';
 import { kmClient } from '@/services/km-client';
 import { gameActions } from '@/state/actions/game-actions';
 import { globalStore, type GamePhase } from '@/state/stores/global-store';
+import { playerStore } from '@/state/stores/player-store';
 import { cn } from '@/utils/cn';
 import { useSnapshot } from '@kokimoki/app';
 import { KmTimeCountdown } from '@kokimoki/shared';
@@ -71,10 +72,19 @@ export const PlayerGameView: React.FC = () => {
 		traitorEnabled,
 		traitorId
 	} = useSnapshot(globalStore.proxy);
+	const { motionPermissionGranted } = useSnapshot(playerStore.proxy);
 	const serverTime = useServerTimer(100);
-	const { data, isShaking } = useAccelerometer({
-		threshold: config.shakeThreshold
-	});
+	const { data, isShaking, requestPermission, permissionGranted } =
+		useAccelerometer({
+			threshold: config.shakeThreshold
+		});
+
+	// Auto-request permission if it was granted before (stored in playerStore)
+	React.useEffect(() => {
+		if (motionPermissionGranted && !permissionGranted) {
+			requestPermission();
+		}
+	}, [motionPermissionGranted, permissionGranted, requestPermission]);
 
 	// Check if current player is the traitor
 	const isTraitor = traitorEnabled && traitorId === kmClient.id;
