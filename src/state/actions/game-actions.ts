@@ -114,11 +114,6 @@ export const gameActions = {
 						config.goPhaseMinMs,
 						config.goPhaseMaxMs
 					);
-				} else if (phase === 'freeze') {
-					globalState.currentPhaseDuration = getRandomDuration(
-						config.freezePhaseMinMs,
-						config.freezePhaseMaxMs
-					);
 				} else if (phase === 'warning') {
 					globalState.currentPhaseDuration = config.warningPhaseDurationMs;
 				}
@@ -126,8 +121,6 @@ export const gameActions = {
 				// Use fixed durations
 				if (phase === 'go') {
 					globalState.currentPhaseDuration = config.goPhaseDurationMs;
-				} else if (phase === 'freeze') {
-					globalState.currentPhaseDuration = config.freezePhaseDurationMs;
 				} else if (phase === 'warning') {
 					globalState.currentPhaseDuration = config.warningPhaseDurationMs;
 				}
@@ -207,93 +200,6 @@ export const gameActions = {
 				}
 
 				globalState.mvpPlayers[teamId] = topPlayer;
-			}
-		});
-	},
-
-	/**
-	 * Check for freeze violations and apply penalties
-	 * Traitor's shake during freeze helps the OPPOSING team
-	 */
-	async checkViolationsAndPenalize() {
-		await kmClient.transact([globalStore], ([globalState]) => {
-			const {
-				freezeViolationThreshold,
-				penaltyDistance,
-				penaltyMultiplier,
-				violationDetectionMode
-			} = config;
-			const traitorId = globalState.traitorId;
-
-			// Adjust threshold based on detection mode
-			let effectiveThreshold = freezeViolationThreshold;
-			if (violationDetectionMode === 'strict') {
-				effectiveThreshold = 0; // Any violation triggers penalty
-			} else if (violationDetectionMode === 'relaxed') {
-				effectiveThreshold = freezeViolationThreshold * 2;
-			}
-
-			// Calculate effective penalty distance
-			const effectivePenalty = penaltyDistance * penaltyMultiplier;
-
-			for (const teamId of ['red', 'blue'] as const) {
-				const opposingTeamId = teamId === 'red' ? 'blue' : 'red';
-
-				// Get all players on this team
-				const teamPlayers = Object.entries(globalState.playerTeams)
-					.filter(([, team]) => team === teamId)
-					.map(([clientId]) => clientId);
-
-				if (teamPlayers.length === 0) {
-					continue;
-				}
-
-				// Count violators (players who moved during freeze)
-				let violatorCount = 0;
-				let traitorViolated = false;
-
-				for (const playerId of teamPlayers) {
-					const report = globalState.shakeReports[playerId];
-					if (report && report.wasActive) {
-						// Check if this is the traitor
-						if (playerId === traitorId && globalState.traitorEnabled) {
-							traitorViolated = true;
-							// Traitor doesn't count toward team's violation
-						} else {
-							violatorCount++;
-						}
-					}
-				}
-
-				// Check if violation threshold exceeded (excluding traitor)
-				const nonTraitorCount = teamPlayers.filter(
-					(id) => id !== traitorId
-				).length;
-				const violationRate =
-					nonTraitorCount > 0 ? violatorCount / nonTraitorCount : 0;
-
-				if (violationRate >= effectiveThreshold) {
-					// Apply penalty to this team
-					globalState.teams[teamId].position = Math.max(
-						0,
-						globalState.teams[teamId].position - effectivePenalty
-					);
-					globalState.teams[teamId].lastPenaltyTimestamp =
-						kmClient.serverTimestamp();
-				}
-
-				// Traitor's violation helps the opposing team advance
-				if (traitorViolated) {
-					const traitorReport = globalState.shakeReports[traitorId!];
-					if (traitorReport) {
-						// Give opposing team a small boost based on traitor's shake
-						const traitorBoost = traitorReport.totalMagnitude * 0.005;
-						globalState.teams[opposingTeamId].position = Math.min(
-							config.totalDistance,
-							globalState.teams[opposingTeamId].position + traitorBoost
-						);
-					}
-				}
 			}
 		});
 	},

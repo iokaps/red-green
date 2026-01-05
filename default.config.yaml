@@ -47,13 +47,10 @@ menuHelpAriaLabel: 'Open help drawer'
 # Game phase settings (in milliseconds)
 goPhaseDurationMs: 6000
 warningPhaseDurationMs: 2000
-freezePhaseDurationMs: 4500
 
 # Variable phase length ranges
 goPhaseMinMs: 4000
 goPhaseMaxMs: 8000
-freezePhaseMinMs: 3000
-freezePhaseMaxMs: 6000
 variablePhasesEnabled: true
 
 # Shake detection settings
@@ -63,12 +60,8 @@ shakeThreshold: 12
 magnitudeWeight: 0.2
 activeCountWeight: 2
 
-# Penalty settings
-freezeViolationThreshold: 0.05
-penaltyDistance: 10
+# Game settings
 totalDistance: 100
-penaltyMultiplier: 1.0
-violationDetectionMode: 'moderate'
 
 # Game settings
 minPlayersPerTeam: 1
@@ -122,14 +115,11 @@ blueTeamShort: 'Blue'
 # Game phase text
 goPhaseText: 'GO!'
 warningPhaseText: 'WARNING!'
-freezePhaseText: 'FREEZE!'
 
 # Player game view
 shakeIntensityLabel: 'Shake Intensity'
-movementDetected: '⚠️ Movement detected!'
 goPhaseInstruction: 'Shake your phone to move your team forward!'
-warningPhaseInstruction: 'Get ready to freeze...'
-freezePhaseInstruction: 'Hold perfectly still! Any movement = penalty!'
+warningPhaseInstruction: 'Get ready to start!'
 
 # Victory
 victoryText: 'WINS!'
@@ -141,5 +131,4 @@ mvpLabel: '⭐ TOP SHAKER'
 
 # Traitor Mode
 traitorModeEnabled: false
-traitorSecretMessage: '🔥 You are the TRAITOR! Shake during FREEZE to help the other team!'
-traitorRevealMessage: 'The traitor was revealed!'
+traitorSecretMessage: '🔥 You are the TRAITOR! Act normal!'

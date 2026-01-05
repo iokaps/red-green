@@ -31,8 +31,6 @@ function getPhaseConfig(phase: GamePhase, currentPhaseDuration: number) {
 				return config.goPhaseDurationMs;
 			case 'warning':
 				return config.warningPhaseDurationMs;
-			case 'freeze':
-				return config.freezePhaseDurationMs;
 			default:
 				return 0;
 		}
@@ -50,13 +48,6 @@ function getPhaseConfig(phase: GamePhase, currentPhaseDuration: number) {
 				text: config.warningPhaseText,
 				bgColor: 'bg-yellow-400',
 				textColor: 'text-yellow-900',
-				duration: getDuration()
-			};
-		case 'freeze':
-			return {
-				text: config.freezePhaseText,
-				bgColor: 'bg-red-500',
-				textColor: 'text-white',
 				duration: getDuration()
 			};
 		default:
@@ -110,7 +101,7 @@ export const PlayerGameView: React.FC = () => {
 	const [penaltyFlash, setPenaltyFlash] = React.useState(false);
 	const lastPenaltyTimestampRef = React.useRef(0);
 
-	// Track accumulated input data for this phase (unified for all input modes)
+	// Track accumulated input data for this phase
 	const inputDataRef = React.useRef({
 		totalMagnitude: 0,
 		maxMagnitude: 0,
@@ -157,10 +148,9 @@ export const PlayerGameView: React.FC = () => {
 		}
 	}, [phaseStartTimestamp]);
 
-	// Track input data during GO phase (accumulate for progress)
-	// or FREEZE phase (detect violations)
+	// Track input data during GO phase (accumulate once per frame)
 	React.useEffect(() => {
-		if (gamePhase !== 'go' && gamePhase !== 'freeze') {
+		if (gamePhase !== 'go') {
 			return;
 		}
 
@@ -178,25 +168,21 @@ export const PlayerGameView: React.FC = () => {
 		}
 
 		// SWIPE mode - distance-based
-		if (currentInputMode === 'swipe') {
+		if (currentInputMode === 'swipe' && totalDistance > 0) {
 			ref.swipeCount = swipeCount;
 			ref.swipeDistance = totalDistance;
-			if (swipeCount > 0) {
-				ref.wasActive = true;
-				// Convert swipe distance to magnitude-like value for consistent progress calculation
-				ref.totalMagnitude += totalDistance * 0.1; // Scale swipe distance
-				ref.inputCount = swipeCount;
-			}
+			ref.wasActive = true;
+			ref.inputCount = swipeCount;
+			// Convert swipe distance to magnitude-like value for consistent progress calculation
+			ref.totalMagnitude += totalDistance * 0.1;
 		}
 
 		// TAP mode - count-based
-		if (currentInputMode === 'tap') {
+		if (currentInputMode === 'tap' && tapCount > 0) {
 			ref.inputCount = tapCount;
-			if (tapCount > 0) {
-				ref.wasActive = true;
-				// Each tap worth ~1 unit of progress
-				ref.totalMagnitude += tapCount * 0.5;
-			}
+			ref.wasActive = true;
+			// Each tap worth ~1 unit of progress
+			ref.totalMagnitude += tapCount * 0.5;
 		}
 
 		// TILT mode - angle-based
@@ -210,13 +196,11 @@ export const PlayerGameView: React.FC = () => {
 		}
 
 		// TARGET mode - hit-based
-		if (currentInputMode === 'target') {
+		if (currentInputMode === 'target' && hitCount > 0) {
 			ref.inputCount = hitCount;
-			if (hitCount > 0) {
-				ref.wasActive = true;
-				// Each successful hit worth ~2 units of progress
-				ref.totalMagnitude += hitCount * 2;
-			}
+			ref.wasActive = true;
+			// Each successful hit worth ~2 units of progress
+			ref.totalMagnitude += hitCount * 2;
 		}
 
 		// SPINNER mode - rotation-based
@@ -253,15 +237,15 @@ export const PlayerGameView: React.FC = () => {
 		clapCount
 	]);
 
-	// Submit input report when phase ends (detected by phase change)
+	// Submit input report when GO phase ends (detected by phase change)
 	const lastPhaseRef = React.useRef(gamePhase);
 	React.useEffect(() => {
 		if (lastPhaseRef.current !== gamePhase) {
 			const prevPhase = lastPhaseRef.current;
 			lastPhaseRef.current = gamePhase;
 
-			// Submit report for GO or FREEZE phases
-			if (prevPhase === 'go' || prevPhase === 'freeze') {
+			// Submit report for GO phase
+			if (prevPhase === 'go') {
 				const ref = inputDataRef.current;
 				gameActions.submitShakeReport({
 					totalMagnitude: ref.totalMagnitude,
@@ -425,6 +409,27 @@ export const PlayerGameView: React.FC = () => {
 				</div>
 			</div>
 
+			{/* Accumulated Input Count Display */}
+			{gamePhase === 'go' && inputDataRef.current.inputCount > 0 && (
+				<div className="w-full max-w-md rounded-xl bg-slate-100 px-4 py-2 text-center shadow-sm">
+					<p className="text-sm font-semibold text-slate-700">
+						{currentInputMode === 'shake'
+							? `${inputDataRef.current.inputCount} Shakes`
+							: currentInputMode === 'swipe'
+								? `${inputDataRef.current.inputCount} Swipes`
+								: currentInputMode === 'tap'
+									? `${inputDataRef.current.inputCount} Taps`
+									: currentInputMode === 'tilt'
+										? `${inputDataRef.current.inputCount} Tilts`
+										: currentInputMode === 'target'
+											? `${inputDataRef.current.inputCount} Hits`
+											: currentInputMode === 'spinner'
+												? `${inputDataRef.current.inputCount} Spins`
+												: `${inputDataRef.current.inputCount} Claps`}
+					</p>
+				</div>
+			)}
+
 			{/* Input Indicator */}
 			<div className="w-full max-w-md">
 				<div className="mb-2 flex items-center justify-between text-sm">
@@ -450,7 +455,7 @@ export const PlayerGameView: React.FC = () => {
 				<div className="h-4 overflow-hidden rounded-full bg-slate-200">
 					<div
 						className={cn(
-							'h-full transition-all duration-100',
+							'h-full bg-green-500 transition-all duration-100',
 							(() => {
 								// Determine active state based on input mode
 								let isInputActive = false;
@@ -469,54 +474,11 @@ export const PlayerGameView: React.FC = () => {
 									isInputActive = clapCount > 0;
 
 								return isInputActive ? 'bg-green-500' : 'bg-slate-400';
-							})(),
-							gamePhase === 'freeze' &&
-								(() => {
-									let isInputActive = false;
-									if (currentInputMode === 'shake') isInputActive = isShaking;
-									else if (currentInputMode === 'swipe')
-										isInputActive = swipeCount > 0;
-									else if (currentInputMode === 'tap')
-										isInputActive = tapCount > 0;
-									else if (currentInputMode === 'tilt')
-										isInputActive = totalTilt > 0.2;
-									else if (currentInputMode === 'target')
-										isInputActive = hitCount > 0;
-									else if (currentInputMode === 'spinner')
-										isInputActive = spinCount > 0;
-									else if (currentInputMode === 'sound')
-										isInputActive = clapCount > 0;
-
-									return isInputActive ? 'bg-red-500' : '';
-								})()
+							})()
 						)}
 						style={{ width: `${inputIntensity}%` }}
 					/>
 				</div>
-				{gamePhase === 'freeze' &&
-					(() => {
-						let isInputActive = false;
-						if (currentInputMode === 'shake') isInputActive = isShaking;
-						else if (currentInputMode === 'swipe')
-							isInputActive = swipeCount > 0;
-						else if (currentInputMode === 'tap') isInputActive = tapCount > 0;
-						else if (currentInputMode === 'tilt')
-							isInputActive = totalTilt > 0.2;
-						else if (currentInputMode === 'target')
-							isInputActive = hitCount > 0;
-						else if (currentInputMode === 'spinner')
-							isInputActive = spinCount > 0;
-						else if (currentInputMode === 'sound')
-							isInputActive = clapCount > 0;
-
-						return (
-							isInputActive && (
-								<p className="mt-2 text-center text-sm font-medium text-red-600">
-									{config.movementDetected}
-								</p>
-							)
-						);
-					})()}
 			</div>
 
 			{/* Team Progress */}
@@ -546,7 +508,6 @@ export const PlayerGameView: React.FC = () => {
 			<p className="max-w-sm text-center text-sm text-slate-500">
 				{gamePhase === 'go' && config.goPhaseInstruction}
 				{gamePhase === 'warning' && config.warningPhaseInstruction}
-				{gamePhase === 'freeze' && config.freezePhaseInstruction}
 
 				{/* Penalty Flash Overlay */}
 				{penaltyFlash && (

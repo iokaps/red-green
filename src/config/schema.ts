@@ -28,13 +28,10 @@ export const schema = z.object({
 	// Game phase settings (fixed durations)
 	goPhaseDurationMs: z.number().default(6000),
 	warningPhaseDurationMs: z.number().default(2000),
-	freezePhaseDurationMs: z.number().default(4500),
 
 	// Variable phase length ranges
 	goPhaseMinMs: z.number().default(4000),
 	goPhaseMaxMs: z.number().default(8000),
-	freezePhaseMinMs: z.number().default(3000),
-	freezePhaseMaxMs: z.number().default(6000),
 	variablePhasesEnabled: z.boolean().default(true),
 
 	// Shake detection settings
@@ -45,13 +42,7 @@ export const schema = z.object({
 	activeCountWeight: z.number().default(2),
 
 	// Penalty settings
-	freezeViolationThreshold: z.number().default(0.05),
-	penaltyDistance: z.number().default(10),
 	totalDistance: z.number().default(100),
-	penaltyMultiplier: z.number().default(1.0),
-	violationDetectionMode: z
-		.enum(['strict', 'moderate', 'relaxed'])
-		.default('moderate'),
 
 	// Game settings
 	minPlayersPerTeam: z.number().default(1),
@@ -125,18 +116,13 @@ export const schema = z.object({
 	// Game phase text
 	goPhaseText: z.string().default('GO!'),
 	warningPhaseText: z.string().default('WARNING!'),
-	freezePhaseText: z.string().default('FREEZE!'),
 
 	// Player game view
 	shakeIntensityLabel: z.string().default('Shake Intensity'),
-	movementDetected: z.string().default('⚠️ Movement detected!'),
 	goPhaseInstruction: z
 		.string()
 		.default('Shake your phone to move your team forward!'),
-	warningPhaseInstruction: z.string().default('Get ready to freeze...'),
-	freezePhaseInstruction: z
-		.string()
-		.default('Hold perfectly still! Any movement = penalty!'),
+	warningPhaseInstruction: z.string().default('Get ready to start!'),
 
 	// Victory
 	victoryText: z.string().default('WINS!'),
@@ -150,10 +136,7 @@ export const schema = z.object({
 	traitorModeEnabled: z.boolean().default(false),
 	traitorSecretMessage: z
 		.string()
-		.default(
-			'🔥 You are the TRAITOR! Shake during FREEZE to help the other team!'
-		),
-	traitorRevealMessage: z.string().default('The traitor was revealed!')
+		.default('🔥 You are the TRAITOR! Act normal!')
 });
 
 export type Config = z.infer<typeof schema>;

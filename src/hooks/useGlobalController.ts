@@ -15,8 +15,6 @@ function getNextPhase(phase: GamePhase): GamePhase {
 		case 'go':
 			return 'warning';
 		case 'warning':
-			return 'freeze';
-		case 'freeze':
 			return 'preview';
 		default:
 			return phase;
@@ -113,11 +111,10 @@ export function useGlobalController() {
 					// End of GO phase - calculate progress and update MVPs before WARNING
 					await gameActions.calculateTeamProgress();
 					await gameActions.updateMvpPlayers();
-				} else if (gamePhase === 'freeze') {
-					// End of FREEZE phase - check violations
-					await gameActions.checkViolationsAndPenalize();
+				}
 
-					// Check for victory
+				// Check for victory after GO phase
+				if (gamePhase === 'go') {
 					const winner = await gameActions.checkVictory();
 					if (winner) {
 						await gameActions.setWinner(winner);

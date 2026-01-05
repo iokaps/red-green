@@ -1,5 +1,4 @@
 import { GuardEye } from '@/components/guard-eye';
-import { LaserGrid } from '@/components/laser-grid';
 import { config } from '@/config';
 import { useServerTimer } from '@/hooks/useServerTime';
 import { globalStore, type GamePhase } from '@/state/stores/global-store';
@@ -26,8 +25,6 @@ function getPhaseDuration(
 			return config.goPhaseDurationMs;
 		case 'warning':
 			return config.warningPhaseDurationMs;
-		case 'freeze':
-			return config.freezePhaseDurationMs;
 		default:
 			return 0;
 	}
@@ -120,7 +117,7 @@ export const PresenterGameView: React.FC = () => {
 				</p>
 				{traitorName && (
 					<p className="mt-4 text-xl text-amber-600">
-						{config.traitorRevealMessage} <strong>{traitorName}</strong>
+						Traitor revealed: <strong>{traitorName}</strong>
 					</p>
 				)}
 			</div>
@@ -129,9 +126,6 @@ export const PresenterGameView: React.FC = () => {
 
 	return (
 		<div className="flex h-full w-full flex-col items-center justify-between gap-6 bg-gradient-to-b from-slate-900 to-slate-800 p-6">
-			{/* Laser Grid overlay during FREEZE */}
-			<LaserGrid active={gamePhase === 'freeze'} />
-
 			{/* Top Section: Round Info */}
 			{gamePhase !== 'lobby' && (
 				<div className="flex w-full flex-col items-center gap-4">
@@ -146,8 +140,7 @@ export const PresenterGameView: React.FC = () => {
 									'bg-green-500 text-white shadow-lg shadow-green-500/50',
 								gamePhase === 'warning' &&
 									'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/50',
-								gamePhase === 'freeze' &&
-									'bg-red-500 text-white shadow-lg shadow-red-500/50',
+
 								gamePhase === 'preview' && 'bg-slate-600 text-white shadow-lg'
 							)}
 						>

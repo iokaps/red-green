@@ -1,12 +1,6 @@
 import { kmClient } from '@/services/km-client';
 
-export type GamePhase =
-	| 'lobby'
-	| 'preview'
-	| 'go'
-	| 'warning'
-	| 'freeze'
-	| 'victory';
+export type GamePhase = 'lobby' | 'preview' | 'go' | 'warning' | 'victory';
 export type TeamId = 'red' | 'blue';
 export type InputMode =
 	| 'shake'
