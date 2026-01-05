@@ -1,6 +1,12 @@
 import { config } from '@/config';
 import { useAccelerometer } from '@/hooks/useAccelerometer';
 import { useServerTimer } from '@/hooks/useServerTime';
+import { useSoundInput } from '@/hooks/useSoundInput';
+import { useSpinnerInput } from '@/hooks/useSpinnerInput';
+import { useSwipeInput } from '@/hooks/useSwipeInput';
+import { useTapInput } from '@/hooks/useTapInput';
+import { useTargetTapping } from '@/hooks/useTargetTapping';
+import { useTiltInput } from '@/hooks/useTiltInput';
 import { kmClient } from '@/services/km-client';
 import { gameActions } from '@/state/actions/game-actions';
 import { globalStore, type GamePhase } from '@/state/stores/global-store';
@@ -77,10 +83,18 @@ export const PlayerGameView: React.FC = () => {
 	} = useSnapshot(globalStore.proxy);
 	const { motionPermissionGranted } = useSnapshot(playerStore.proxy);
 	const serverTime = useServerTimer(100);
+
+	// Input detection hooks - one for each input mode
 	const { data, isShaking, requestPermission, permissionGranted } =
 		useAccelerometer({
 			threshold: config.shakeThreshold
 		});
+	const { swipeCount, totalDistance } = useSwipeInput();
+	const { tapCount } = useTapInput();
+	const { totalTilt } = useTiltInput();
+	const { targets, hitCount } = useTargetTapping(gamePhase === 'go');
+	const { rotation, spinCount } = useSpinnerInput();
+	const { volumeLevel, clapCount } = useSoundInput(gamePhase === 'go');
 
 	// Auto-request permission if it was granted before (stored in playerStore)
 	React.useEffect(() => {
@@ -96,13 +110,15 @@ export const PlayerGameView: React.FC = () => {
 	const [penaltyFlash, setPenaltyFlash] = React.useState(false);
 	const lastPenaltyTimestampRef = React.useRef(0);
 
-	// Track accumulated shake data for this phase
-	const shakeDataRef = React.useRef({
+	// Track accumulated input data for this phase (unified for all input modes)
+	const inputDataRef = React.useRef({
 		totalMagnitude: 0,
 		maxMagnitude: 0,
-		shakeCount: 0,
+		inputCount: 0,
 		wasActive: false,
-		phaseTimestamp: 0
+		phaseTimestamp: 0,
+		swipeCount: 0,
+		swipeDistance: 0
 	});
 
 	// Get player's team
@@ -126,37 +142,118 @@ export const PlayerGameView: React.FC = () => {
 		phaseConfig.duration - (serverTime - phaseStartTimestamp)
 	);
 
-	// Reset shake data when phase changes
+	// Reset input data when phase changes
 	React.useEffect(() => {
-		if (phaseStartTimestamp !== shakeDataRef.current.phaseTimestamp) {
-			shakeDataRef.current = {
+		if (phaseStartTimestamp !== inputDataRef.current.phaseTimestamp) {
+			inputDataRef.current = {
 				totalMagnitude: 0,
 				maxMagnitude: 0,
-				shakeCount: 0,
+				inputCount: 0,
 				wasActive: false,
-				phaseTimestamp: phaseStartTimestamp
+				phaseTimestamp: phaseStartTimestamp,
+				swipeCount: 0,
+				swipeDistance: 0
 			};
 		}
 	}, [phaseStartTimestamp]);
 
-	// Track shake data during GO phase (accumulate for progress)
+	// Track input data during GO phase (accumulate for progress)
 	// or FREEZE phase (detect violations)
 	React.useEffect(() => {
-		if (!data || (gamePhase !== 'go' && gamePhase !== 'freeze')) {
+		if (gamePhase !== 'go' && gamePhase !== 'freeze') {
 			return;
 		}
 
-		const ref = shakeDataRef.current;
-		ref.totalMagnitude += data.magnitude;
-		ref.maxMagnitude = Math.max(ref.maxMagnitude, data.magnitude);
+		const ref = inputDataRef.current;
 
-		if (isShaking) {
-			ref.shakeCount++;
-			ref.wasActive = true;
+		// SHAKE mode - magnitude-based
+		if (currentInputMode === 'shake' && data) {
+			ref.totalMagnitude += data.magnitude;
+			ref.maxMagnitude = Math.max(ref.maxMagnitude, data.magnitude);
+
+			if (isShaking) {
+				ref.inputCount++;
+				ref.wasActive = true;
+			}
 		}
-	}, [data, isShaking, gamePhase]);
 
-	// Submit shake report when phase ends (detected by phase change)
+		// SWIPE mode - distance-based
+		if (currentInputMode === 'swipe') {
+			ref.swipeCount = swipeCount;
+			ref.swipeDistance = totalDistance;
+			if (swipeCount > 0) {
+				ref.wasActive = true;
+				// Convert swipe distance to magnitude-like value for consistent progress calculation
+				ref.totalMagnitude += totalDistance * 0.1; // Scale swipe distance
+				ref.inputCount = swipeCount;
+			}
+		}
+
+		// TAP mode - count-based
+		if (currentInputMode === 'tap') {
+			ref.inputCount = tapCount;
+			if (tapCount > 0) {
+				ref.wasActive = true;
+				// Each tap worth ~1 unit of progress
+				ref.totalMagnitude += tapCount * 0.5;
+			}
+		}
+
+		// TILT mode - angle-based
+		if (currentInputMode === 'tilt') {
+			ref.totalMagnitude += totalTilt;
+			ref.maxMagnitude = Math.max(ref.maxMagnitude, totalTilt);
+			if (totalTilt > 0.2) {
+				ref.inputCount++;
+				ref.wasActive = true;
+			}
+		}
+
+		// TARGET mode - hit-based
+		if (currentInputMode === 'target') {
+			ref.inputCount = hitCount;
+			if (hitCount > 0) {
+				ref.wasActive = true;
+				// Each successful hit worth ~2 units of progress
+				ref.totalMagnitude += hitCount * 2;
+			}
+		}
+
+		// SPINNER mode - rotation-based
+		if (currentInputMode === 'spinner') {
+			ref.inputCount = spinCount;
+			// Convert rotation to progress (each 360° = 10 units)
+			ref.totalMagnitude += Math.abs(rotation) / 36;
+			if (spinCount > 0) {
+				ref.wasActive = true;
+			}
+		}
+
+		// SOUND mode - volume-based
+		if (currentInputMode === 'sound') {
+			ref.totalMagnitude += volumeLevel * 0.1;
+			ref.inputCount = clapCount;
+			if (clapCount > 0) {
+				ref.wasActive = true;
+			}
+		}
+	}, [
+		data,
+		isShaking,
+		gamePhase,
+		currentInputMode,
+		swipeCount,
+		totalDistance,
+		tapCount,
+		totalTilt,
+		hitCount,
+		rotation,
+		spinCount,
+		volumeLevel,
+		clapCount
+	]);
+
+	// Submit input report when phase ends (detected by phase change)
 	const lastPhaseRef = React.useRef(gamePhase);
 	React.useEffect(() => {
 		if (lastPhaseRef.current !== gamePhase) {
@@ -165,21 +262,46 @@ export const PlayerGameView: React.FC = () => {
 
 			// Submit report for GO or FREEZE phases
 			if (prevPhase === 'go' || prevPhase === 'freeze') {
-				const ref = shakeDataRef.current;
+				const ref = inputDataRef.current;
 				gameActions.submitShakeReport({
 					totalMagnitude: ref.totalMagnitude,
 					maxMagnitude: ref.maxMagnitude,
-					shakeCount: ref.shakeCount,
+					shakeCount: ref.inputCount,
 					wasActive: ref.wasActive
 				});
 			}
 		}
 	}, [gamePhase]);
 
-	// Calculate shake intensity for visual feedback (0-100)
-	const shakeIntensity = data
-		? Math.min(100, (data.magnitude / config.shakeThreshold) * 50)
-		: 0;
+	// Calculate input intensity for visual feedback (0-100)
+	let inputIntensity = 0;
+	let inputLabel = 'Intensity';
+
+	if (currentInputMode === 'shake' && data) {
+		inputIntensity = Math.min(
+			100,
+			(data.magnitude / config.shakeThreshold) * 50
+		);
+		inputLabel = config.shakeIntensityLabel;
+	} else if (currentInputMode === 'swipe') {
+		inputIntensity = Math.min(100, (totalDistance / 300) * 50);
+		inputLabel = 'Swipe Intensity';
+	} else if (currentInputMode === 'tap') {
+		inputIntensity = Math.min(100, (tapCount / 20) * 50);
+		inputLabel = 'Tap Speed';
+	} else if (currentInputMode === 'tilt') {
+		inputIntensity = Math.min(100, (totalTilt / 1) * 50);
+		inputLabel = 'Tilt Angle';
+	} else if (currentInputMode === 'target') {
+		inputIntensity = Math.min(100, (hitCount / 10) * 50);
+		inputLabel = 'Accuracy';
+	} else if (currentInputMode === 'spinner') {
+		inputIntensity = Math.min(100, (Math.abs(rotation) / 720) * 50);
+		inputLabel = 'Spin Speed';
+	} else if (currentInputMode === 'sound') {
+		inputIntensity = Math.min(100, (volumeLevel / 100) * 50);
+		inputLabel = 'Volume Level';
+	}
 
 	// Show preview before GO phase
 	if (gamePhase === 'preview') {
@@ -202,6 +324,90 @@ export const PlayerGameView: React.FC = () => {
 				</div>
 			)}
 
+			{/* TARGET Mode Game Area */}
+			{gamePhase === 'go' && currentInputMode === 'target' && (
+				<div
+					id="target-game-area"
+					className="relative h-96 w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-pink-100 to-pink-200 shadow-lg"
+				>
+					{/* Targets */}
+					{targets.map((target) => (
+						<div
+							key={target.id}
+							className={cn(
+								'absolute rounded-full border-2 border-pink-600 transition-all',
+								target.hit
+									? 'scale-150 border-green-600 bg-green-400'
+									: 'cursor-pointer bg-pink-400 hover:scale-110'
+							)}
+							style={{
+								left: `${target.x}px`,
+								top: `${target.y}px`,
+								width: `${target.size}px`,
+								height: `${target.size}px`,
+								opacity: target.hit ? 0.5 : 0.8
+							}}
+						/>
+					))}
+
+					{/* Hit Counter */}
+					<div className="absolute top-4 left-4 rounded-lg bg-white px-4 py-2 font-bold text-pink-600 shadow-md">
+						Hits: {hitCount}
+					</div>
+				</div>
+			)}
+
+			{/* SPINNER Mode Game Area */}
+			{gamePhase === 'go' && currentInputMode === 'spinner' && (
+				<div className="flex flex-col items-center gap-4">
+					<div className="relative h-48 w-48">
+						<svg
+							className="absolute inset-0 h-full w-full"
+							viewBox="0 0 200 200"
+							style={{ transform: `rotate(${rotation}deg)` }}
+						>
+							{/* Spinner wheel */}
+							<circle
+								cx="100"
+								cy="100"
+								r="80"
+								fill="none"
+								stroke="#f59e0b"
+								strokeWidth="20"
+							/>
+							{/* Segments */}
+							{[...Array(8)].map((_, i) => {
+								const angle = (i * 360) / 8;
+								const rad = (angle * Math.PI) / 180;
+								const x = 100 + 80 * Math.cos(rad);
+								const y = 100 + 80 * Math.sin(rad);
+								return (
+									<line
+										key={i}
+										x1="100"
+										y1="100"
+										x2={x}
+										y2={y}
+										stroke="#b45309"
+										strokeWidth="2"
+									/>
+								);
+							})}
+							{/* Center circle */}
+							<circle cx="100" cy="100" r="15" fill="#b45309" />
+						</svg>
+					</div>
+					<div className="text-center">
+						<p className="text-xl font-bold text-orange-600">
+							Spins: {spinCount}
+						</p>
+						<p className="text-sm text-orange-600">
+							Rotation: {Math.abs(rotation).toFixed(0)}°
+						</p>
+					</div>
+				</div>
+			)}
+
 			{/* Phase Indicator */}
 			<div
 				className={cn(
@@ -219,29 +425,98 @@ export const PlayerGameView: React.FC = () => {
 				</div>
 			</div>
 
-			{/* Shake Indicator */}
+			{/* Input Indicator */}
 			<div className="w-full max-w-md">
 				<div className="mb-2 flex items-center justify-between text-sm">
-					<span className="text-slate-600">{config.shakeIntensityLabel}</span>
+					<span className="text-slate-600">{inputLabel}</span>
 					<span className="font-medium">
-						{data ? data.magnitude.toFixed(1) : '0.0'} m/s²
+						{currentInputMode === 'shake'
+							? data
+								? `${data.magnitude.toFixed(1)} m/s²`
+								: '0.0 m/s²'
+							: currentInputMode === 'swipe'
+								? `${totalDistance.toFixed(0)} px`
+								: currentInputMode === 'tap'
+									? `${tapCount} taps`
+									: currentInputMode === 'tilt'
+										? `${(totalTilt * 100).toFixed(0)}%`
+										: currentInputMode === 'target'
+											? `${hitCount} hits`
+											: currentInputMode === 'spinner'
+												? `${Math.abs(rotation).toFixed(0)}°`
+												: `${volumeLevel.toFixed(0)} dB`}
 					</span>
 				</div>
 				<div className="h-4 overflow-hidden rounded-full bg-slate-200">
 					<div
 						className={cn(
 							'h-full transition-all duration-100',
-							isShaking ? 'bg-green-500' : 'bg-slate-400',
-							gamePhase === 'freeze' && isShaking && 'bg-red-500'
+							(() => {
+								// Determine active state based on input mode
+								let isInputActive = false;
+								if (currentInputMode === 'shake') isInputActive = isShaking;
+								else if (currentInputMode === 'swipe')
+									isInputActive = swipeCount > 0;
+								else if (currentInputMode === 'tap')
+									isInputActive = tapCount > 0;
+								else if (currentInputMode === 'tilt')
+									isInputActive = totalTilt > 0.2;
+								else if (currentInputMode === 'target')
+									isInputActive = hitCount > 0;
+								else if (currentInputMode === 'spinner')
+									isInputActive = spinCount > 0;
+								else if (currentInputMode === 'sound')
+									isInputActive = clapCount > 0;
+
+								return isInputActive ? 'bg-green-500' : 'bg-slate-400';
+							})(),
+							gamePhase === 'freeze' &&
+								(() => {
+									let isInputActive = false;
+									if (currentInputMode === 'shake') isInputActive = isShaking;
+									else if (currentInputMode === 'swipe')
+										isInputActive = swipeCount > 0;
+									else if (currentInputMode === 'tap')
+										isInputActive = tapCount > 0;
+									else if (currentInputMode === 'tilt')
+										isInputActive = totalTilt > 0.2;
+									else if (currentInputMode === 'target')
+										isInputActive = hitCount > 0;
+									else if (currentInputMode === 'spinner')
+										isInputActive = spinCount > 0;
+									else if (currentInputMode === 'sound')
+										isInputActive = clapCount > 0;
+
+									return isInputActive ? 'bg-red-500' : '';
+								})()
 						)}
-						style={{ width: `${shakeIntensity}%` }}
+						style={{ width: `${inputIntensity}%` }}
 					/>
 				</div>
-				{gamePhase === 'freeze' && isShaking && (
-					<p className="mt-2 text-center text-sm font-medium text-red-600">
-						{config.movementDetected}
-					</p>
-				)}
+				{gamePhase === 'freeze' &&
+					(() => {
+						let isInputActive = false;
+						if (currentInputMode === 'shake') isInputActive = isShaking;
+						else if (currentInputMode === 'swipe')
+							isInputActive = swipeCount > 0;
+						else if (currentInputMode === 'tap') isInputActive = tapCount > 0;
+						else if (currentInputMode === 'tilt')
+							isInputActive = totalTilt > 0.2;
+						else if (currentInputMode === 'target')
+							isInputActive = hitCount > 0;
+						else if (currentInputMode === 'spinner')
+							isInputActive = spinCount > 0;
+						else if (currentInputMode === 'sound')
+							isInputActive = clapCount > 0;
+
+						return (
+							isInputActive && (
+								<p className="mt-2 text-center text-sm font-medium text-red-600">
+									{config.movementDetected}
+								</p>
+							)
+						);
+					})()}
 			</div>
 
 			{/* Team Progress */}

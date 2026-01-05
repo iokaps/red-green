@@ -1,117 +1,126 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface Target {
 	id: string;
-	x: number; // 0-100 (percent)
-	y: number; // 0-100 (percent)
+	x: number;
+	y: number;
+	size: number;
 	createdAt: number;
-	size: number; // in pixels
+	hit: boolean;
 }
 
-interface UseTargetTappingResult {
-	/** Current active targets */
+export interface UseTargetTappingResult {
 	targets: Target[];
-	/** Number of taps on targets */
 	hitCount: number;
-	/** Start spawning targets */
-	startTargets: () => void;
-	/** Stop spawning targets */
-	stopTargets: () => void;
+	isActive: boolean;
 }
 
 /**
  * Hook to manage target tapping gameplay
+ * Generates random targets on screen that players tap to score
+ * @param isActive Whether to generate new targets
+ * @returns Object containing targets, hit count, and active state
  */
-export function useTargetTapping(
-	spawnInterval = 800,
-	targetLifetime = 800
-): UseTargetTappingResult {
+export function useTargetTapping(isActive: boolean): UseTargetTappingResult {
 	const [targets, setTargets] = useState<Target[]>([]);
 	const [hitCount, setHitCount] = useState(0);
-	const isActiveRef = useRef(false);
-	const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
-	const targetLifetimeRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+	const TARGET_LIFETIME = 800; // How long each target shows
+	const SPAWN_INTERVAL = 400; // How often to spawn new targets
+	const TARGET_SIZE = 50; // Size in pixels
 
-	const spawnTarget = useCallback(() => {
-		const id = Math.random().toString(36).substr(2, 9);
-		const newTarget: Target = {
-			id,
-			x: Math.random() * 80 + 10, // 10-90%
-			y: Math.random() * 60 + 20, // 20-80%
-			createdAt: Date.now(),
-			size: 60
+	// Spawn new targets
+	useEffect(() => {
+		if (!isActive) return;
+
+		const spawnInterval = setInterval(() => {
+			const newTarget: Target = {
+				id: `${Date.now()}-${Math.random()}`,
+				x:
+					Math.random() *
+					(typeof window !== 'undefined'
+						? window.innerWidth - TARGET_SIZE
+						: 300),
+				y:
+					Math.random() *
+					(typeof window !== 'undefined'
+						? window.innerHeight - TARGET_SIZE
+						: 400),
+				size: TARGET_SIZE,
+				createdAt: Date.now(),
+				hit: false
+			};
+
+			setTargets((prev) => [...prev, newTarget]);
+		}, SPAWN_INTERVAL);
+
+		return () => clearInterval(spawnInterval);
+	}, [isActive]);
+
+	// Remove expired targets
+	useEffect(() => {
+		const cleanupInterval = setInterval(() => {
+			setTargets((prev) =>
+				prev.filter((target) => Date.now() - target.createdAt < TARGET_LIFETIME)
+			);
+		}, 100);
+
+		return () => clearInterval(cleanupInterval);
+	}, []);
+
+	// Handle target taps
+	useEffect(() => {
+		const handleTap = (e: TouchEvent | MouseEvent) => {
+			const rect = (e.target as HTMLElement)?.getBoundingClientRect?.();
+			if (!rect) return;
+
+			const clientX =
+				e instanceof TouchEvent
+					? e.touches[0]?.clientX
+					: (e as MouseEvent).clientX;
+			const clientY =
+				e instanceof TouchEvent
+					? e.touches[0]?.clientY
+					: (e as MouseEvent).clientY;
+
+			if (!clientX || !clientY) return;
+
+			const tapX = clientX - rect.left;
+			const tapY = clientY - rect.top;
+
+			setTargets((prev) =>
+				prev.map((target) => {
+					if (target.hit) return target;
+
+					const distance = Math.sqrt(
+						Math.pow(tapX - (target.x + target.size / 2), 2) +
+							Math.pow(tapY - (target.y + target.size / 2), 2)
+					);
+
+					if (distance < target.size) {
+						setHitCount((prevCount) => prevCount + 1);
+						return { ...target, hit: true };
+					}
+
+					return target;
+				})
+			);
 		};
 
-		setTargets((prev) => [...prev, newTarget]);
-
-		// Remove target after lifetime
-		const timeout = setTimeout(() => {
-			setTargets((prev) => prev.filter((t) => t.id !== id));
-			targetLifetimeRef.current.delete(id);
-		}, targetLifetime);
-
-		targetLifetimeRef.current.set(id, timeout);
-	}, [targetLifetime]);
-
-	const handleTap = useCallback((e: TouchEvent) => {
-		if (e.touches.length === 0) return;
-
-		const touch = e.touches[0];
-		const rect = (e.target as HTMLElement).getBoundingClientRect?.();
-
-		if (!rect) return;
-
-		const tapX = ((touch.clientX - rect.left) / rect.width) * 100;
-		const tapY = ((touch.clientY - rect.top) / rect.height) * 100;
-
-		setTargets((prev) => {
-			const remaining = prev.filter((target) => {
-				const dx = target.x - tapX;
-				const dy = target.y - tapY;
-				const distance = Math.sqrt(dx * dx + dy * dy);
-				const hitRadius =
-					(target.size / 2 / Math.min(rect.width, rect.height)) * 100;
-
-				if (distance < hitRadius) {
-					setHitCount((c) => c + 1);
-					return false;
-				}
-				return true;
+		const gameArea = document.getElementById('target-game-area');
+		if (gameArea) {
+			gameArea.addEventListener('touchstart', handleTap as any, {
+				passive: true
 			});
+			gameArea.addEventListener('click', handleTap as any);
+		}
 
-			return remaining;
-		});
+		return () => {
+			if (gameArea) {
+				gameArea.removeEventListener('touchstart', handleTap as any);
+				gameArea.removeEventListener('click', handleTap as any);
+			}
+		};
 	}, []);
 
-	const startTargets = useCallback(() => {
-		isActiveRef.current = true;
-		spawnIntervalRef.current = setInterval(spawnTarget, spawnInterval);
-	}, [spawnTarget, spawnInterval]);
-
-	const stopTargets = useCallback(() => {
-		isActiveRef.current = false;
-		if (spawnIntervalRef.current) {
-			clearInterval(spawnIntervalRef.current);
-		}
-		// Clear all timeouts
-		targetLifetimeRef.current.forEach((timeout) => clearTimeout(timeout));
-		targetLifetimeRef.current.clear();
-		setTargets([]);
-	}, []);
-
-	useEffect(() => {
-		if (isActiveRef.current) {
-			window.addEventListener('touchstart', handleTap);
-			return () => {
-				window.removeEventListener('touchstart', handleTap);
-			};
-		}
-	}, [handleTap]);
-
-	return {
-		targets,
-		hitCount,
-		startTargets,
-		stopTargets
-	};
+	return { targets, hitCount, isActive };
 }

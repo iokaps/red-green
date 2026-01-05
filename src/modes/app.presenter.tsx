@@ -8,7 +8,6 @@ import { HostPresenterLayout } from '@/layouts/host-presenter';
 import { kmClient } from '@/services/km-client';
 import { globalStore } from '@/state/stores/global-store';
 import { cn } from '@/utils/cn';
-import { ConnectionsView } from '@/views/connections-view';
 import { PresenterGameView } from '@/views/presenter-game-view';
 import { useSnapshot } from '@kokimoki/app';
 import { KmQrCode } from '@kokimoki/shared';
@@ -48,15 +47,12 @@ const App: React.FC = () => {
 		<HostPresenterLayout.Root>
 			<GameAudioController />
 			<HostPresenterLayout.Header />
-
 			<HostPresenterLayout.Main>
-				<ConnectionsView>
-					<KmQrCode
-						data={playerLink}
-						size={200}
-						className={cn(!showPresenterQr && 'invisible')}
-					/>
-				</ConnectionsView>
+				<KmQrCode
+					data={playerLink}
+					size={200}
+					className={cn(!showPresenterQr && 'invisible')}
+				/>
 			</HostPresenterLayout.Main>
 		</HostPresenterLayout.Root>
 	);

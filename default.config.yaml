@@ -3,56 +3,6 @@
 # Translations
 title: 'Host Starter'
 
-gameLobbyMd: |
-  # Game Lobby
-
-  This is a sample markdown to demonstrate various markdown features.
-
-  ## Starting soon
-
-  Game is starting soon. **Get ready!**
-
-  ## Rules
-
-  1. Wait for the host to start the game.
-  2. Follow the instructions on the presenter screen.
-  3. Open [Games for Crowds](https://gamesforcrowds.com) for more info.
-
-  ## What people say
-
-  > **This game is awesome!** - Player 1
-
-  > **I had a good time playing this.** - Player 2
-
-  > **Always looking forward to the next round!**  - Player 3
-
-  ---
-
-  ## Sample Code
-
-  ```
-  // Code block
-  console.log('Hello, world!');
-  ```
-
-  ## Sample Image
-
-  ![Logo](/logo.svg)
-
-connectionsMd: |
-  Scan the QR to join the game.
-
-sharedStateMd: |
-  # Shared State Host
-  This is an example of shared state view. Host can start the game, open the presenter screen and allow players to join by scanning the QR.
-
-  ## Host Actions
-  Here's a demo of dashboard actions that can be used to control the state on presenter and player screens.
-
-sharedStatePlayerMd: |
-  # Shared State Player
-  You are connected as a player. Host has started the game. In this shared state example the playtime is synchronized between all players.
-
 players: 'Players Connected'
 online: 'Online'
 offline: 'Offline'
@@ -95,23 +45,23 @@ menuAriaLabel: 'Open menu drawer'
 menuHelpAriaLabel: 'Open help drawer'
 
 # Game phase settings (in milliseconds)
-goPhaseDurationMs: 5000
-warningPhaseDurationMs: 1500
-freezePhaseDurationMs: 3000
+goPhaseDurationMs: 6000
+warningPhaseDurationMs: 2000
+freezePhaseDurationMs: 4500
 
 # Variable phase length ranges
-goPhaseMinMs: 3000
-goPhaseMaxMs: 7000
-freezePhaseMinMs: 2000
-freezePhaseMaxMs: 5000
+goPhaseMinMs: 4000
+goPhaseMaxMs: 8000
+freezePhaseMinMs: 3000
+freezePhaseMaxMs: 6000
 variablePhasesEnabled: true
 
 # Shake detection settings
 shakeThreshold: 12
 
 # Progress calculation weights
-magnitudeWeight: 0.01
-activeCountWeight: 0.5
+magnitudeWeight: 0.2
+activeCountWeight: 2
 
 # Penalty settings
 freezeViolationThreshold: 0.05
@@ -122,7 +72,6 @@ violationDetectionMode: 'moderate'
 
 # Game settings
 minPlayersPerTeam: 1
-roundCount: 1
 
 # Input mode settings
 inputModes:
@@ -150,28 +99,6 @@ inputModeSwipeInstructions: 'Swipe across the screen repeatedly!'
 inputModeSoundInstructions: 'Clap and cheer! Louder = more progress!'
 inputModeTargetInstructions: 'Tap the targets as fast as you can!'
 inputModeSpinnerInstructions: 'Flick to spin the wheel!'
-
-# Tap input settings
-tapSensitivity: 1.0
-
-# Tilt input settings
-tiltThreshold: 8
-tiltWeight: 0.02
-
-# Swipe input settings
-swipeWeight: 0.5
-
-# Sound input settings
-soundThreshold: -50
-soundWeight: 0.01
-
-# Target tapping settings
-targetDurationMs: 800
-targetCount: 1
-targetWeight: 1.0
-
-# Spinner settings
-spinnerWeight: 0.02
 
 # Team selection view
 teamSelectTitle: 'Choose Your Team'

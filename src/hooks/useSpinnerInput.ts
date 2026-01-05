@@ -1,102 +1,85 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-interface UseSpinnerInputResult {
-	/** Current rotation angle in degrees */
+export interface UseSpinnerInputResult {
 	rotation: number;
-	/** Rotation velocity (degrees per second) */
-	velocity: number;
-	/** Total spin momentum accumulated */
-	totalMomentum: number;
+	spinCount: number;
+	isActive: boolean;
 }
 
 /**
- * Hook to track spinner/wheel flick input
+ * Hook to detect spinner/wheel flick input
+ * Tracks touch swipes for spinning momentum
+ * @returns Object containing rotation, spin count, and active state
  */
 export function useSpinnerInput(): UseSpinnerInputResult {
 	const [rotation, setRotation] = useState(0);
-	const [velocity, setVelocity] = useState(0);
-	const [totalMomentum, setTotalMomentum] = useState(0);
-	const rotationRef = useRef(0);
+	const [spinCount, setSpinCount] = useState(0);
+	const [isActive, setIsActive] = useState(false);
+	const lastYRef = useRef<number | null>(null);
 	const velocityRef = useRef(0);
-	const momentumRef = useRef(0);
-	const lastTouchRef = useRef({ x: 0, y: 0, time: 0 });
-	const decayIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-	const calculateVelocity = useCallback(
-		(currentPos: { x: number; y: number }) => {
-			const lastPos = lastTouchRef.current;
-			const dx = currentPos.x - lastPos.x;
-			const dy = currentPos.y - lastPos.y;
-
-			const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-			return angle;
-		},
-		[]
-	);
-
-	const handleTouchStart = useCallback((e: TouchEvent) => {
-		if (e.touches.length > 0) {
-			lastTouchRef.current = {
-				x: e.touches[0].clientX,
-				y: e.touches[0].clientY,
-				time: Date.now()
-			};
-		}
-	}, []);
-
-	const handleTouchMove = useCallback(
-		(e: TouchEvent) => {
-			if (e.touches.length === 0) return;
-
-			const currentPos = {
-				x: e.touches[0].clientX,
-				y: e.touches[0].clientY
-			};
-
-			const deltaAngle = calculateVelocity(currentPos);
-			velocityRef.current = deltaAngle;
-
-			rotationRef.current = (rotationRef.current + deltaAngle) % 360;
-			momentumRef.current += Math.abs(deltaAngle);
-
-			setRotation(rotationRef.current);
-			setVelocity(velocityRef.current);
-			setTotalMomentum(momentumRef.current);
-
-			lastTouchRef.current = {
-				x: currentPos.x,
-				y: currentPos.y,
-				time: Date.now()
-			};
-		},
-		[calculateVelocity]
-	);
+	const lastTimeRef = useRef(Date.now());
 
 	useEffect(() => {
-		// Apply velocity decay
-		decayIntervalRef.current = setInterval(() => {
-			velocityRef.current *= 0.95;
-			if (Math.abs(velocityRef.current) < 0.1) {
-				velocityRef.current = 0;
-			}
-			setVelocity(velocityRef.current);
-		}, 16);
+		const handleTouchStart = (e: TouchEvent) => {
+			lastYRef.current = e.touches[0]?.clientY ?? null;
+			lastTimeRef.current = Date.now();
+		};
 
-		window.addEventListener('touchstart', handleTouchStart);
-		window.addEventListener('touchmove', handleTouchMove);
+		const handleTouchMove = (e: TouchEvent) => {
+			if (lastYRef.current === null) return;
+
+			const currentY = e.touches[0]?.clientY ?? 0;
+			const deltaY = currentY - lastYRef.current;
+			const deltaTime = Date.now() - lastTimeRef.current;
+
+			if (deltaTime > 0) {
+				velocityRef.current = deltaY / deltaTime;
+
+				// Convert to rotation (1px = 2 degrees)
+				const deltaRotation = deltaY * 2;
+				setRotation((prev) => prev + deltaRotation);
+				setIsActive(true);
+			}
+
+			lastYRef.current = currentY;
+			lastTimeRef.current = Date.now();
+		};
+
+		const handleTouchEnd = () => {
+			if (Math.abs(velocityRef.current) > 1) {
+				// Significant flick detected
+				setSpinCount((prev) => prev + 1);
+
+				// Apply momentum
+				let momentum = velocityRef.current * 100;
+				const applyMomentum = () => {
+					if (Math.abs(momentum) > 0.5) {
+						setRotation((prev) => prev + momentum);
+						momentum *= 0.95; // Friction
+						requestAnimationFrame(applyMomentum);
+					} else {
+						setIsActive(false);
+					}
+				};
+				applyMomentum();
+			} else {
+				setIsActive(false);
+			}
+
+			lastYRef.current = null;
+			velocityRef.current = 0;
+		};
+
+		window.addEventListener('touchstart', handleTouchStart, { passive: true });
+		window.addEventListener('touchmove', handleTouchMove, { passive: true });
+		window.addEventListener('touchend', handleTouchEnd);
 
 		return () => {
-			if (decayIntervalRef.current) {
-				clearInterval(decayIntervalRef.current);
-			}
 			window.removeEventListener('touchstart', handleTouchStart);
 			window.removeEventListener('touchmove', handleTouchMove);
+			window.removeEventListener('touchend', handleTouchEnd);
 		};
-	}, [handleTouchStart, handleTouchMove]);
+	}, []);
 
-	return {
-		rotation,
-		velocity,
-		totalMomentum
-	};
+	return { rotation, spinCount, isActive };
 }

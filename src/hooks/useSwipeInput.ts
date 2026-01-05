@@ -1,63 +1,55 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface UseSwipeInputResult {
-	/** Number of swipes detected */
 	swipeCount: number;
-	/** Direction of last swipe ('up', 'down', 'left', 'right') */
-	lastDirection: string | null;
+	totalDistance: number;
+	isActive: boolean;
 }
 
 /**
  * Hook to detect swipe gestures on the screen
+ * Tracks swipe count and total distance traveled
  */
 export function useSwipeInput(): UseSwipeInputResult {
 	const [swipeCount, setSwipeCount] = useState(0);
-	const [lastDirection, setLastDirection] = useState<string | null>(null);
-	const swipeCountRef = useRef(0);
-	const touchStartRef = useRef({ x: 0, y: 0 });
+	const [totalDistance, setTotalDistance] = useState(0);
+	const [isActive, setIsActive] = useState(false);
 
-	const handleTouchStart = useCallback((e: TouchEvent) => {
-		if (e.touches.length > 0) {
-			touchStartRef.current = {
-				x: e.touches[0].clientX,
-				y: e.touches[0].clientY
-			};
-		}
-	}, []);
-
-	const handleTouchEnd = useCallback((e: TouchEvent) => {
-		if (e.changedTouches.length === 0) return;
-
-		const endX = e.changedTouches[0].clientX;
-		const endY = e.changedTouches[0].clientY;
-		const startX = touchStartRef.current.x;
-		const startY = touchStartRef.current.y;
-
-		const diffX = endX - startX;
-		const diffY = endY - startY;
-		const minSwipeDistance = 30;
-
-		if (
-			Math.abs(diffX) > minSwipeDistance ||
-			Math.abs(diffY) > minSwipeDistance
-		) {
-			const absDiffX = Math.abs(diffX);
-			const absDiffY = Math.abs(diffY);
-
-			let direction: string;
-			if (absDiffX > absDiffY) {
-				direction = diffX > 0 ? 'right' : 'left';
-			} else {
-				direction = diffY > 0 ? 'down' : 'up';
-			}
-
-			setLastDirection(direction);
-			swipeCountRef.current++;
-			setSwipeCount(swipeCountRef.current);
-		}
-	}, []);
+	const startXRef = useRef(0);
+	const startYRef = useRef(0);
+	const minSwipeDistance = 30; // Minimum distance to count as a swipe (pixels)
 
 	useEffect(() => {
+		const handleTouchStart = (event: TouchEvent) => {
+			if (event.touches.length > 0) {
+				startXRef.current = event.touches[0].clientX;
+				startYRef.current = event.touches[0].clientY;
+			}
+		};
+
+		const handleTouchEnd = (event: TouchEvent) => {
+			if (event.changedTouches.length > 0) {
+				const endX = event.changedTouches[0].clientX;
+				const endY = event.changedTouches[0].clientY;
+
+				const diffX = Math.abs(endX - startXRef.current);
+				const diffY = Math.abs(endY - startYRef.current);
+				const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+				// Only count swipes that meet minimum distance
+				if (distance >= minSwipeDistance) {
+					setSwipeCount((prev) => prev + 1);
+					setTotalDistance((prev) => prev + distance);
+					setIsActive(true);
+
+					// Reset active state after a short delay
+					setTimeout(() => {
+						setIsActive(false);
+					}, 100);
+				}
+			}
+		};
+
 		window.addEventListener('touchstart', handleTouchStart);
 		window.addEventListener('touchend', handleTouchEnd);
 
@@ -65,10 +57,11 @@ export function useSwipeInput(): UseSwipeInputResult {
 			window.removeEventListener('touchstart', handleTouchStart);
 			window.removeEventListener('touchend', handleTouchEnd);
 		};
-	}, [handleTouchStart, handleTouchEnd]);
+	}, []);
 
 	return {
 		swipeCount,
-		lastDirection
+		totalDistance,
+		isActive
 	};
 }

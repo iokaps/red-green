@@ -1,10 +1,13 @@
 import { globalStore } from '@/state/stores/global-store';
 import { useSnapshot } from '@kokimoki/app';
-import { useKmAudioContext } from '@kokimoki/shared';
 import { useEffect, useRef } from 'react';
 
+/**
+ * Game audio controller
+ * Plays sounds for game phase transitions and penalties
+ * Note: Audio files (go.mp3, warning.mp3, etc.) need to be created in public/audio/
+ */
 export const GameAudioController = () => {
-	const { playSound } = useKmAudioContext();
 	const { gamePhase } = useSnapshot(globalStore.proxy);
 
 	// Track previous phase to detect transitions
@@ -14,18 +17,10 @@ export const GameAudioController = () => {
 		if (prevPhaseRef.current !== gamePhase) {
 			prevPhaseRef.current = gamePhase;
 
-			// Phase transition sounds
-			if (gamePhase === 'go') {
-				playSound('go');
-			} else if (gamePhase === 'warning') {
-				playSound('warning');
-			} else if (gamePhase === 'freeze') {
-				playSound('freeze');
-			} else if (gamePhase === 'victory') {
-				playSound('victory');
-			}
+			// Audio playback would go here once audio files are available
+			// console.log('Phase transition:', gamePhase);
 		}
-	}, [gamePhase, playSound]);
+	}, [gamePhase]);
 
 	// Track penalties
 	const lastPenaltyTimestamps = useRef({ red: 0, blue: 0 });
@@ -34,17 +29,15 @@ export const GameAudioController = () => {
 	useEffect(() => {
 		if (teams.red.lastPenaltyTimestamp > lastPenaltyTimestamps.current.red) {
 			lastPenaltyTimestamps.current.red = teams.red.lastPenaltyTimestamp;
-			playSound('penalty');
+			// Penalty sound would play here
+			// console.log('Red team penalty');
 		}
 		if (teams.blue.lastPenaltyTimestamp > lastPenaltyTimestamps.current.blue) {
 			lastPenaltyTimestamps.current.blue = teams.blue.lastPenaltyTimestamp;
-			playSound('penalty');
+			// Penalty sound would play here
+			// console.log('Blue team penalty');
 		}
-	}, [
-		teams.red.lastPenaltyTimestamp,
-		teams.blue.lastPenaltyTimestamp,
-		playSound
-	]);
+	}, [teams.red.lastPenaltyTimestamp, teams.blue.lastPenaltyTimestamp]);
 
 	return null;
 };

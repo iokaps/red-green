@@ -1,96 +1,98 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-interface UseSoundInputResult {
-	/** Current volume level in dB (-100 to 0) */
+export interface UseSoundInputResult {
 	volumeLevel: number;
-	/** Whether current volume exceeds threshold */
-	isLoud: boolean;
-	/** Peak volume detected */
-	peakVolume: number;
-	/** Whether audio context has been initialized */
-	isInitialized: boolean;
-	/** Request microphone permission */
-	requestPermission: () => Promise<boolean>;
+	clapCount: number;
+	isActive: boolean;
+	permissionGranted: boolean;
+	requestPermission: () => Promise<void>;
 }
 
 /**
- * Hook to detect sound/clapping via microphone
+ * Hook to detect sound/clap input using microphone
+ * Tracks audio level and clap events
+ * @param isEnabled Whether to actively listen for sound
+ * @returns Object containing volume level, clap count, and permission state
  */
-export function useSoundInput(threshold = -50): UseSoundInputResult {
+export function useSoundInput(isEnabled = true): UseSoundInputResult {
 	const [volumeLevel, setVolumeLevel] = useState(0);
-	const [isLoud, setIsLoud] = useState(false);
-	const [peakVolume, setPeakVolume] = useState(0);
-	const [isInitialized, setIsInitialized] = useState(false);
-	const audioContextRef = useRef<AudioContext | null>(null);
+	const [clapCount, setClapCount] = useState(0);
+	const [isActive, setIsActive] = useState(false);
+	const [permissionGranted, setPermissionGranted] = useState(false);
 	const analyserRef = useRef<AnalyserNode | null>(null);
+	const streamRef = useRef<MediaStream | null>(null);
 	const dataArrayRef = useRef<Uint8Array | null>(null);
-	const animationFrameRef = useRef<number | null>(null);
+	const lastClapTimeRef = useRef(0);
 
-	const requestPermission = useCallback(async (): Promise<boolean> => {
+	const requestPermission = async () => {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			streamRef.current = stream;
+			setPermissionGranted(true);
 
 			const audioContext = new (
 				window.AudioContext || (window as any).webkitAudioContext
 			)();
 			const analyser = audioContext.createAnalyser();
-			analyser.fftSize = 2048;
+			analyser.fftSize = 256;
+			analyserRef.current = analyser;
+			dataArrayRef.current = new Uint8Array(
+				analyser.frequencyBinCount
+			) as Uint8Array<ArrayBuffer>;
+
 			const source = audioContext.createMediaStreamSource(stream);
 			source.connect(analyser);
 
-			const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-			audioContextRef.current = audioContext;
-			analyserRef.current = analyser;
-			dataArrayRef.current = dataArray;
-			setIsInitialized(true);
-
-			// Start analyzing
-			const analyze = () => {
+			// Start monitoring audio
+			const checkAudio = () => {
 				if (!analyserRef.current || !dataArrayRef.current) return;
 
-				analyserRef.current.getByteFrequencyData(dataArrayRef.current as any);
+				analyserRef.current.getByteFrequencyData(
+					dataArrayRef.current as Uint8Array<ArrayBuffer>
+				);
+				const average =
+					dataArrayRef.current.reduce((a, b) => a + b) /
+					dataArrayRef.current.length;
+				const normalizedLevel = Math.min(100, (average / 255) * 100);
 
-				let sum = 0;
-				for (let i = 0; i < dataArrayRef.current.length; i++) {
-					sum += dataArrayRef.current[i];
+				setVolumeLevel(normalizedLevel);
+
+				// Detect clap: sharp increase in volume
+				if (normalizedLevel > 50) {
+					const now = Date.now();
+					if (now - lastClapTimeRef.current > 200) {
+						setClapCount((prev) => prev + 1);
+						lastClapTimeRef.current = now;
+						setIsActive(true);
+						setTimeout(() => setIsActive(false), 150);
+					}
 				}
-				const average = sum / dataArrayRef.current.length;
 
-				// Convert to dB scale (-100 to 0)
-				const dB = 20 * Math.log10(average / 255);
-
-				setVolumeLevel(dB);
-				setIsLoud(dB > threshold);
-				setPeakVolume(Math.max(peakVolume, dB));
-
-				animationFrameRef.current = requestAnimationFrame(analyze);
+				if (isEnabled) {
+					requestAnimationFrame(checkAudio);
+				}
 			};
 
-			analyze();
-			return true;
+			checkAudio();
 		} catch (error) {
 			console.error('Microphone permission denied:', error);
-			return false;
+			setPermissionGranted(false);
 		}
-	}, [peakVolume, threshold]);
+	};
 
 	useEffect(() => {
 		return () => {
-			if (animationFrameRef.current) {
-				cancelAnimationFrame(animationFrameRef.current);
-			}
-			if (audioContextRef.current) {
-				audioContextRef.current.close();
+			if (streamRef.current) {
+				streamRef.current.getTracks().forEach((track) => track.stop());
 			}
 		};
 	}, []);
 
 	return {
 		volumeLevel,
-		isLoud,
-		peakVolume,
-		isInitialized,
+		clapCount,
+		isActive,
+		permissionGranted,
 		requestPermission
 	};
 }

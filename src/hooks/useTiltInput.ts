@@ -1,96 +1,62 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-interface TiltData {
-	x: number;
-	y: number;
-	magnitude: number;
-}
-
-interface UseTiltInputResult {
-	/** Current tilt data */
-	data: TiltData | null;
-	/** Whether tilt exceeds threshold */
-	isTilting: boolean;
-	/** Request motion permission (iOS 13+) */
-	requestPermission: () => Promise<boolean>;
-	/** Whether motion permission has been granted */
-	permissionGranted: boolean;
+export interface UseTiltInputResult {
+	tiltX: number; // X-axis tilt (-1 to 1)
+	tiltY: number; // Y-axis tilt (-1 to 1)
+	totalTilt: number; // Combined tilt magnitude
+	isActive: boolean;
 }
 
 /**
- * Hook to detect device tilt using accelerometer
+ * Hook to detect phone tilt using accelerometer
+ * Tracks X and Y axis acceleration for tilt detection
+ * @returns Object containing tilt values and active state
  */
-export function useTiltInput(threshold = 8): UseTiltInputResult {
-	const [data, setData] = useState<TiltData | null>(null);
-	const [isTilting, setIsTilting] = useState(false);
-	const [permissionGranted, setPermissionGranted] = useState(false);
-	const lastUpdateRef = useRef<number>(0);
+export function useTiltInput(): UseTiltInputResult {
+	const [tiltX, setTiltX] = useState(0);
+	const [tiltY, setTiltY] = useState(0);
+	const [isActive, setIsActive] = useState(false);
 
-	const needsPermission = useCallback(() => {
-		return (
-			typeof DeviceMotionEvent !== 'undefined' &&
-			typeof (DeviceMotionEvent as any).requestPermission === 'function'
-		);
+	useEffect(() => {
+		const updateTimeout = { id: 0 };
+
+		const handleDeviceMotion = (event: DeviceMotionEvent) => {
+			const accelX = event.accelerationIncludingGravity?.x ?? 0;
+			const accelY = event.accelerationIncludingGravity?.y ?? 0;
+
+			// Normalize to -1 to 1 range (±20 m/s² is extreme)
+			const normalizedX = Math.max(-1, Math.min(1, accelX / 20));
+			const normalizedY = Math.max(-1, Math.min(1, accelY / 20));
+
+			setTiltX(normalizedX);
+			setTiltY(normalizedY);
+
+			// Check if there's significant movement
+			const magnitude = Math.sqrt(
+				normalizedX * normalizedX + normalizedY * normalizedY
+			);
+			if (magnitude > 0.3) {
+				setIsActive(true);
+			}
+
+			// Clear active state after no movement
+			clearTimeout(updateTimeout.id);
+			updateTimeout.id = window.setTimeout(() => {
+				setIsActive(false);
+			}, 150);
+		};
+
+		window.addEventListener('devicemotion', handleDeviceMotion as any, {
+			passive: true
+		});
+
+		return () => {
+			window.removeEventListener('devicemotion', handleDeviceMotion as any);
+			clearTimeout(updateTimeout.id);
+		};
 	}, []);
 
-	const requestPermission = useCallback(async (): Promise<boolean> => {
-		if (needsPermission()) {
-			try {
-				const permission = await (DeviceMotionEvent as any).requestPermission();
-				const granted = permission === 'granted';
-				setPermissionGranted(granted);
-				return granted;
-			} catch (error) {
-				setPermissionGranted(false);
-				return false;
-			}
-		}
-		setPermissionGranted(true);
-		return true;
-	}, [needsPermission]);
+	const totalTilt = Math.sqrt(tiltX * tiltX + tiltY * tiltY);
 
-	useEffect(() => {
-		if (!needsPermission()) {
-			setPermissionGranted(true);
-		}
-	}, [needsPermission]);
-
-	useEffect(() => {
-		if (!permissionGranted) {
-			return;
-		}
-
-		const handleMotion = (event: DeviceMotionEvent) => {
-			const now = Date.now();
-			if (now - lastUpdateRef.current < 50) {
-				return;
-			}
-			lastUpdateRef.current = now;
-
-			const { accelerationIncludingGravity } = event;
-			if (!accelerationIncludingGravity) {
-				return;
-			}
-
-			const x = accelerationIncludingGravity.x ?? 0;
-			const y = accelerationIncludingGravity.y ?? 0;
-
-			const magnitude = Math.sqrt(x * x + y * y);
-
-			setData({ x, y, magnitude });
-			setIsTilting(magnitude > threshold);
-		};
-
-		window.addEventListener('devicemotion', handleMotion);
-		return () => {
-			window.removeEventListener('devicemotion', handleMotion);
-		};
-	}, [permissionGranted, threshold]);
-
-	return {
-		data,
-		isTilting,
-		requestPermission,
-		permissionGranted
-	};
+	return { tiltX, tiltY, totalTilt, isActive };
 }

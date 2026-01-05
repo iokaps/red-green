@@ -1,42 +1,51 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-interface UseTapInputResult {
-	/** Number of taps in the current session */
+export interface UseTapInputResult {
 	tapCount: number;
-	/** Whether the user is currently touching the screen */
-	isTouching: boolean;
+	isActive: boolean;
 }
 
 /**
- * Hook to track screen taps for the TAP input mode
+ * Hook to detect rapid taps on the screen
+ * Counts the number of taps detected within the component lifetime
+ * @returns Object containing tap count and active state
  */
 export function useTapInput(): UseTapInputResult {
 	const [tapCount, setTapCount] = useState(0);
-	const [isTouching, setIsTouching] = useState(false);
-	const tapCountRef = useRef(0);
-
-	const handleTouchStart = useCallback(() => {
-		setIsTouching(true);
-		tapCountRef.current++;
-		setTapCount(tapCountRef.current);
-	}, []);
-
-	const handleTouchEnd = useCallback(() => {
-		setIsTouching(false);
-	}, []);
+	const [isActive, setIsActive] = useState(false);
 
 	useEffect(() => {
-		window.addEventListener('touchstart', handleTouchStart);
-		window.addEventListener('touchend', handleTouchEnd);
+		let lastTapTime = 0;
+		const TAP_DEBOUNCE = 100; // Minimum time between taps (ms)
+
+		const handleTouchStart = (_e: TouchEvent) => {
+			const now = Date.now();
+			if (now - lastTapTime > TAP_DEBOUNCE) {
+				setTapCount((prev) => prev + 1);
+				lastTapTime = now;
+				setIsActive(true);
+				setTimeout(() => setIsActive(false), 150);
+			}
+		};
+
+		const handleMouseDown = (_e: MouseEvent) => {
+			const now = Date.now();
+			if (now - lastTapTime > TAP_DEBOUNCE) {
+				setTapCount((prev) => prev + 1);
+				lastTapTime = now;
+				setIsActive(true);
+				setTimeout(() => setIsActive(false), 150);
+			}
+		};
+
+		window.addEventListener('touchstart', handleTouchStart, { passive: true });
+		window.addEventListener('mousedown', handleMouseDown);
 
 		return () => {
 			window.removeEventListener('touchstart', handleTouchStart);
-			window.removeEventListener('touchend', handleTouchEnd);
+			window.removeEventListener('mousedown', handleMouseDown);
 		};
-	}, [handleTouchStart, handleTouchEnd]);
+	}, []);
 
-	return {
-		tapCount,
-		isTouching
-	};
+	return { tapCount, isActive };
 }

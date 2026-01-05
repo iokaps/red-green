@@ -63,7 +63,7 @@ const App: React.FC = () => {
 
 	const handleStartGame = async () => {
 		await globalActions.startGame();
-		await gameActions.transitionPhase('go');
+		await gameActions.transitionPhase('preview');
 	};
 
 	const handleStopGame = async () => {

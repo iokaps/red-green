@@ -1,5 +1,4 @@
 import { GameAudioController } from '@/components/game-audio-controller';
-import { PlayerMenu } from '@/components/menu';
 import { NameLabel } from '@/components/name-label';
 import { withKmProviders } from '@/components/with-km-providers';
 import { config } from '@/config';
@@ -97,9 +96,7 @@ const App: React.FC = () => {
 	return (
 		<PlayerLayout.Root>
 			<GameAudioController />
-			<PlayerLayout.Header>
-				<PlayerMenu />
-			</PlayerLayout.Header>
+			<PlayerLayout.Header />
 			<PlayerLayout.Main>
 				{currentView === 'team-select' && <TeamSelectView />}
 				{currentView === 'lobby' && <TeamSelectView />}

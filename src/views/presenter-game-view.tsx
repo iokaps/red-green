@@ -128,146 +128,223 @@ export const PresenterGameView: React.FC = () => {
 	}
 
 	return (
-		<div className="flex h-full w-full flex-col items-center justify-between gap-8 p-8">
+		<div className="flex h-full w-full flex-col items-center justify-between gap-6 bg-gradient-to-b from-slate-900 to-slate-800 p-6">
 			{/* Laser Grid overlay during FREEZE */}
 			<LaserGrid active={gamePhase === 'freeze'} />
 
-			{/* Guard Eye */}
-			<div className="flex flex-1 items-center justify-center">
-				<GuardEye phase={gamePhase} className="scale-150" />
-			</div>
-
-			{/* Phase Timer */}
+			{/* Top Section: Round Info */}
 			{gamePhase !== 'lobby' && (
-				<div className="flex flex-col items-center gap-2">
-					<div className="text-xl font-bold text-slate-500">
-						ROUND {currentRound} • {currentInputMode.toUpperCase()}
+				<div className="flex w-full flex-col items-center gap-4">
+					<div className="text-3xl font-bold text-slate-300">
+						ROUND {currentRound}
 					</div>
-					<div
-						className={cn(
-							'rounded-xl px-8 py-4 text-4xl font-bold tabular-nums',
-							gamePhase === 'go' && 'bg-green-500 text-white',
-							gamePhase === 'warning' && 'bg-yellow-400 text-yellow-900',
-							gamePhase === 'freeze' && 'bg-red-500 text-white',
-							gamePhase === 'preview' && 'bg-slate-500 text-white'
-						)}
-					>
-						<KmTimeCountdown ms={timeRemaining} display="s" />
+					<div className="flex items-center gap-8">
+						<div
+							className={cn(
+								'rounded-2xl px-12 py-6 text-7xl font-black tabular-nums transition-all',
+								gamePhase === 'go' &&
+									'bg-green-500 text-white shadow-lg shadow-green-500/50',
+								gamePhase === 'warning' &&
+									'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/50',
+								gamePhase === 'freeze' &&
+									'bg-red-500 text-white shadow-lg shadow-red-500/50',
+								gamePhase === 'preview' && 'bg-slate-600 text-white shadow-lg'
+							)}
+						>
+							<KmTimeCountdown ms={timeRemaining} display="s" />
+						</div>
+						<div className="text-4xl font-bold text-white">
+							{currentInputMode.toUpperCase()}
+						</div>
 					</div>
 				</div>
 			)}
 
-			{/* MVP Spotlight - Show during GO phase */}
+			{/* Middle Section: Guard Eye */}
+			<div className="flex flex-1 items-center justify-center">
+				<GuardEye phase={gamePhase} className="scale-200" />
+			</div>
+
+			{/* MVP Spotlight - Enhanced */}
 			{gamePhase === 'go' && config.mvpSpotlightEnabled && (
-				<div className="flex w-full max-w-2xl justify-between gap-4">
+				<div className="flex w-full max-w-5xl justify-between gap-6">
 					{/* Red team MVP */}
 					<div
-						className="flex flex-1 items-center gap-3 rounded-lg p-3"
-						style={{ backgroundColor: `${teams.red.color}20` }}
+						className="flex flex-1 flex-col items-center rounded-2xl p-6 shadow-xl transition-transform hover:scale-105"
+						style={{
+							backgroundColor: `${teams.red.color}30`,
+							border: `3px solid ${teams.red.color}`
+						}}
 					>
-						<span className="text-lg">{config.mvpLabel}</span>
+						<span className="mb-3 text-3xl">{config.mvpLabel}</span>
 						{mvpPlayers.red ? (
-							<span className="font-bold" style={{ color: teams.red.color }}>
+							<span
+								className="text-2xl font-black"
+								style={{ color: teams.red.color }}
+							>
 								{mvpPlayers.red.name}
 							</span>
 						) : (
-							<span className="text-slate-400">—</span>
+							<span className="text-2xl text-slate-400">—</span>
 						)}
 					</div>
 					{/* Blue team MVP */}
 					<div
-						className="flex flex-1 items-center justify-end gap-3 rounded-lg p-3"
-						style={{ backgroundColor: `${teams.blue.color}20` }}
+						className="flex flex-1 flex-col items-center rounded-2xl p-6 shadow-xl transition-transform hover:scale-105"
+						style={{
+							backgroundColor: `${teams.blue.color}30`,
+							border: `3px solid ${teams.blue.color}`
+						}}
 					>
+						<span className="mb-3 text-3xl">{config.mvpLabel}</span>
 						{mvpPlayers.blue ? (
-							<span className="font-bold" style={{ color: teams.blue.color }}>
+							<span
+								className="text-2xl font-black"
+								style={{ color: teams.blue.color }}
+							>
 								{mvpPlayers.blue.name}
 							</span>
 						) : (
-							<span className="text-slate-400">—</span>
+							<span className="text-2xl text-slate-400">—</span>
 						)}
-						<span className="text-lg">{config.mvpLabel}</span>
 					</div>
 				</div>
 			)}
 
-			{/* Race Track */}
-			<div className="w-full max-w-4xl space-y-4">
-				{/* Track container */}
-				<div className="relative h-32 rounded-2xl border-4 border-slate-300 bg-slate-100">
+			{/* Bottom Section: Race Track - Much Larger */}
+			<div className="w-full max-w-6xl space-y-6">
+				{/* Track container - Enlarged */}
+				<div className="relative h-48 rounded-3xl border-6 border-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 shadow-2xl">
 					{/* Finish line */}
-					<div className="absolute top-0 right-0 flex h-full w-16 items-center justify-center border-l-4 border-dashed border-slate-400 bg-slate-200">
-						<Trophy className="size-10 text-yellow-500" />
+					<div className="absolute top-0 right-0 flex h-full w-24 items-center justify-center border-l-8 border-dashed border-slate-300 bg-slate-500/30">
+						<Trophy className="size-16 text-yellow-400" />
 					</div>
 
-					{/* Red team avatar */}
+					{/* Red team avatar - Larger */}
 					<div
 						className={cn(
-							'absolute top-2 flex h-12 w-20 items-center justify-center rounded-lg transition-all duration-500',
-							penaltyFlash === 'red' && 'animate-shake'
+							'absolute top-3 flex h-32 w-32 items-center justify-center rounded-2xl font-black text-white shadow-xl transition-all duration-500',
+							penaltyFlash === 'red' &&
+								'animate-shake scale-110 ring-4 ring-red-300'
 						)}
 						style={{
 							left: `calc(${(teams.red.position / config.totalDistance) * 85}% )`,
 							backgroundColor: teams.red.color
 						}}
 					>
-						<span className="text-sm font-bold text-white">
-							{teamCounts.red}
-						</span>
+						<div className="flex flex-col items-center">
+							<span className="text-5xl">{teamCounts.red}</span>
+							<span className="text-xl">Players</span>
+						</div>
 					</div>
 
-					{/* Blue team avatar */}
+					{/* Blue team avatar - Larger */}
 					<div
 						className={cn(
-							'absolute bottom-2 flex h-12 w-20 items-center justify-center rounded-lg transition-all duration-500',
-							penaltyFlash === 'blue' && 'animate-shake'
+							'absolute bottom-3 flex h-32 w-32 items-center justify-center rounded-2xl font-black text-white shadow-xl transition-all duration-500',
+							penaltyFlash === 'blue' &&
+								'animate-shake scale-110 ring-4 ring-blue-300'
 						)}
 						style={{
 							left: `calc(${(teams.blue.position / config.totalDistance) * 85}%)`,
 							backgroundColor: teams.blue.color
 						}}
 					>
-						<span className="text-sm font-bold text-white">
-							{teamCounts.blue}
-						</span>
+						<div className="flex flex-col items-center">
+							<span className="text-5xl">{teamCounts.blue}</span>
+							<span className="text-xl">Players</span>
+						</div>
 					</div>
 				</div>
 
-				{/* Team labels with positions */}
-				<div className="flex justify-between text-lg">
-					<div className="flex items-center gap-3">
-						<div
-							className="size-4 rounded-full"
-							style={{ backgroundColor: teams.red.color }}
-						/>
-						<span className="font-bold" style={{ color: teams.red.color }}>
-							{teams.red.name}
-						</span>
-						<span className="text-slate-500">
-							{Math.round(teams.red.position)}m
-						</span>
+				{/* Team labels with positions and progress bar - Enhanced */}
+				<div className="space-y-4">
+					{/* Red team */}
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-4">
+								<div
+									className="size-6 rounded-full shadow-lg"
+									style={{ backgroundColor: teams.red.color }}
+								/>
+								<span
+									className="text-3xl font-black"
+									style={{ color: teams.red.color }}
+								>
+									{teams.red.name}
+								</span>
+							</div>
+							<div className="flex items-baseline gap-3">
+								<span className="text-3xl font-bold text-white">
+									{Math.round(teams.red.position)}m
+								</span>
+								<span className="text-2xl text-slate-400">
+									/ {config.totalDistance}m (
+									{Math.round(
+										(teams.red.position / config.totalDistance) * 100
+									)}
+									%)
+								</span>
+							</div>
+						</div>
+						<div className="h-3 overflow-hidden rounded-full bg-slate-700">
+							<div
+								className="h-full transition-all duration-500"
+								style={{
+									width: `${(teams.red.position / config.totalDistance) * 100}%`,
+									backgroundColor: teams.red.color
+								}}
+							/>
+						</div>
 					</div>
-					<div className="flex items-center gap-3">
-						<span className="text-slate-500">
-							{Math.round(teams.blue.position)}m
-						</span>
-						<span className="font-bold" style={{ color: teams.blue.color }}>
-							{teams.blue.name}
-						</span>
-						<div
-							className="size-4 rounded-full"
-							style={{ backgroundColor: teams.blue.color }}
-						/>
+
+					{/* Blue team */}
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-4">
+								<div
+									className="size-6 rounded-full shadow-lg"
+									style={{ backgroundColor: teams.blue.color }}
+								/>
+								<span
+									className="text-3xl font-black"
+									style={{ color: teams.blue.color }}
+								>
+									{teams.blue.name}
+								</span>
+							</div>
+							<div className="flex items-baseline gap-3">
+								<span className="text-3xl font-bold text-white">
+									{Math.round(teams.blue.position)}m
+								</span>
+								<span className="text-2xl text-slate-400">
+									/ {config.totalDistance}m (
+									{Math.round(
+										(teams.blue.position / config.totalDistance) * 100
+									)}
+									%)
+								</span>
+							</div>
+						</div>
+						<div className="h-3 overflow-hidden rounded-full bg-slate-700">
+							<div
+								className="h-full transition-all duration-500"
+								style={{
+									width: `${(teams.blue.position / config.totalDistance) * 100}%`,
+									backgroundColor: teams.blue.color
+								}}
+							/>
+						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Penalty Flash Overlay */}
+			{/* Penalty Flash Overlay - More dramatic */}
 			{penaltyFlash && (
 				<div
 					className={cn(
 						'animate-flash pointer-events-none fixed inset-0 z-50',
-						penaltyFlash === 'red' ? 'bg-red-500/20' : 'bg-blue-500/20'
+						penaltyFlash === 'red' ? 'bg-red-500/40' : 'bg-blue-500/40'
 					)}
 				/>
 			)}

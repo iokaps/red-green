@@ -4,15 +4,6 @@ export const schema = z.object({
 	// translations
 	title: z.string().default('My Game'),
 
-	gameLobbyMd: z
-		.string()
-		.default(
-			'# Waiting for game to start...\nThe game will start once the host presses the start button.'
-		),
-	connectionsMd: z.string().default('# Connections example'),
-	sharedStateMd: z.string().default('# Shared State example'),
-	sharedStatePlayerMd: z.string().default('# Shared State example for players'),
-
 	players: z.string().default('Players'),
 	online: z.string().default('Online'),
 	offline: z.string().default('Offline'),
@@ -20,10 +11,6 @@ export const schema = z.object({
 	stopButton: z.string().default('Stop Game'),
 	resetButton: z.string().default('Reset Game'),
 	loading: z.string().default('Loading...'),
-
-	menuHelpMd: z
-		.string()
-		.default('# Help\nInstructions on how to play the game.'),
 
 	createProfileMd: z.string().default('# Create your player profile'),
 	playerNamePlaceholder: z.string().default('Your name...'),
@@ -39,23 +26,23 @@ export const schema = z.object({
 	menuHelpAriaLabel: z.string().default('Open help drawer'),
 
 	// Game phase settings (fixed durations)
-	goPhaseDurationMs: z.number().default(5000),
-	warningPhaseDurationMs: z.number().default(1500),
-	freezePhaseDurationMs: z.number().default(3000),
+	goPhaseDurationMs: z.number().default(6000),
+	warningPhaseDurationMs: z.number().default(2000),
+	freezePhaseDurationMs: z.number().default(4500),
 
 	// Variable phase length ranges
-	goPhaseMinMs: z.number().default(3000),
-	goPhaseMaxMs: z.number().default(7000),
-	freezePhaseMinMs: z.number().default(2000),
-	freezePhaseMaxMs: z.number().default(5000),
+	goPhaseMinMs: z.number().default(4000),
+	goPhaseMaxMs: z.number().default(8000),
+	freezePhaseMinMs: z.number().default(3000),
+	freezePhaseMaxMs: z.number().default(6000),
 	variablePhasesEnabled: z.boolean().default(true),
 
 	// Shake detection settings
 	shakeThreshold: z.number().default(12),
 
 	// Progress calculation weights
-	magnitudeWeight: z.number().default(0.01),
-	activeCountWeight: z.number().default(0.5),
+	magnitudeWeight: z.number().default(0.2),
+	activeCountWeight: z.number().default(2),
 
 	// Penalty settings
 	freezeViolationThreshold: z.number().default(0.05),
@@ -68,7 +55,6 @@ export const schema = z.object({
 
 	// Game settings
 	minPlayersPerTeam: z.number().default(1),
-	roundCount: z.number().default(1),
 
 	// Input mode settings
 	inputModes: z
@@ -108,28 +94,6 @@ export const schema = z.object({
 		.string()
 		.default('Tap the targets as fast as you can!'),
 	inputModeSpinnerInstructions: z.string().default('Flick to spin the wheel!'),
-
-	// Tap input settings
-	tapSensitivity: z.number().default(1.0),
-
-	// Tilt input settings
-	tiltThreshold: z.number().default(8),
-	tiltWeight: z.number().default(0.02),
-
-	// Swipe input settings
-	swipeWeight: z.number().default(0.5),
-
-	// Sound input settings
-	soundThreshold: z.number().default(-50),
-	soundWeight: z.number().default(0.01),
-
-	// Target tapping settings
-	targetDurationMs: z.number().default(800),
-	targetCount: z.number().default(1),
-	targetWeight: z.number().default(1.0),
-
-	// Spinner settings
-	spinnerWeight: z.number().default(0.02),
 
 	// Team selection view
 	teamSelectTitle: z.string().default('Choose Your Team'),
