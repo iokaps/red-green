@@ -9,6 +9,7 @@ import { cn } from '@/utils/cn';
 import { useSnapshot } from '@kokimoki/app';
 import { KmTimeCountdown } from '@kokimoki/shared';
 import * as React from 'react';
+import { RoundPreviewView } from './round-preview-view';
 
 /**
  * Get phase display configuration - uses currentPhaseDuration from state
@@ -67,6 +68,8 @@ export const PlayerGameView: React.FC = () => {
 		gamePhase,
 		phaseStartTimestamp,
 		currentPhaseDuration,
+		currentRound,
+		currentInputMode,
 		playerTeams,
 		teams,
 		traitorEnabled,
@@ -89,6 +92,10 @@ export const PlayerGameView: React.FC = () => {
 	// Check if current player is the traitor
 	const isTraitor = traitorEnabled && traitorId === kmClient.id;
 
+	// Track penalty flash
+	const [penaltyFlash, setPenaltyFlash] = React.useState(false);
+	const lastPenaltyTimestampRef = React.useRef(0);
+
 	// Track accumulated shake data for this phase
 	const shakeDataRef = React.useRef({
 		totalMagnitude: 0,
@@ -101,6 +108,16 @@ export const PlayerGameView: React.FC = () => {
 	// Get player's team
 	const myTeamId = playerTeams[kmClient.id];
 	const myTeam = myTeamId ? teams[myTeamId] : null;
+
+	// Track penalty flash on last penalty update
+	React.useEffect(() => {
+		if (!myTeam) return;
+		if (myTeam.lastPenaltyTimestamp > lastPenaltyTimestampRef.current) {
+			lastPenaltyTimestampRef.current = myTeam.lastPenaltyTimestamp;
+			setPenaltyFlash(true);
+			setTimeout(() => setPenaltyFlash(false), 1000);
+		}
+	}, [myTeam?.lastPenaltyTimestamp]);
 
 	// Get phase config
 	const phaseConfig = getPhaseConfig(gamePhase, currentPhaseDuration);
@@ -164,6 +181,16 @@ export const PlayerGameView: React.FC = () => {
 		? Math.min(100, (data.magnitude / config.shakeThreshold) * 50)
 		: 0;
 
+	// Show preview before GO phase
+	if (gamePhase === 'preview') {
+		return (
+			<RoundPreviewView
+				inputMode={currentInputMode}
+				roundNumber={currentRound}
+			/>
+		);
+	}
+
 	return (
 		<div className="flex h-full w-full flex-col items-center justify-center gap-6">
 			{/* Traitor Secret Message */}
@@ -183,6 +210,7 @@ export const PlayerGameView: React.FC = () => {
 					phaseConfig.textColor
 				)}
 			>
+				<div className="text-lg font-bold opacity-80">ROUND {currentRound}</div>
 				<h1 className="text-4xl font-black tracking-tight">
 					{phaseConfig.text}
 				</h1>
@@ -244,6 +272,15 @@ export const PlayerGameView: React.FC = () => {
 				{gamePhase === 'go' && config.goPhaseInstruction}
 				{gamePhase === 'warning' && config.warningPhaseInstruction}
 				{gamePhase === 'freeze' && config.freezePhaseInstruction}
+
+				{/* Penalty Flash Overlay */}
+				{penaltyFlash && (
+					<div className="animate-flash pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-red-500/50">
+						<div className="rounded-xl bg-red-600 px-8 py-4 text-4xl font-black text-white shadow-xl">
+							PENALTY!
+						</div>
+					</div>
+				)}
 			</p>
 		</div>
 	);

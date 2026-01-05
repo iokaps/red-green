@@ -1,3 +1,4 @@
+import { GameAudioController } from '@/components/game-audio-controller';
 import { PlayerMenu } from '@/components/menu';
 import { NameLabel } from '@/components/name-label';
 import { withKmProviders } from '@/components/with-km-providers';
@@ -51,6 +52,7 @@ const App: React.FC = () => {
 	if (!name) {
 		return (
 			<PlayerLayout.Root>
+				<GameAudioController />
 				<PlayerLayout.Header />
 				<PlayerLayout.Main>
 					<CreateProfileView />
@@ -63,6 +65,7 @@ const App: React.FC = () => {
 	if (currentView === 'victory' && winningTeam) {
 		return (
 			<PlayerLayout.Root>
+				<GameAudioController />
 				<PlayerLayout.Header />
 				<PlayerLayout.Main>
 					<PlayerVictoryView
@@ -78,6 +81,7 @@ const App: React.FC = () => {
 	if (currentView === 'game' && started) {
 		return (
 			<PlayerLayout.Root>
+				<GameAudioController />
 				<PlayerLayout.Header />
 				<PlayerLayout.Main>
 					<PlayerGameView />
@@ -92,6 +96,7 @@ const App: React.FC = () => {
 	// Team selection / lobby
 	return (
 		<PlayerLayout.Root>
+			<GameAudioController />
 			<PlayerLayout.Header>
 				<PlayerMenu />
 			</PlayerLayout.Header>

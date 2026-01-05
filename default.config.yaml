@@ -117,6 +117,61 @@ activeCountWeight: 0.5
 freezeViolationThreshold: 0.05
 penaltyDistance: 10
 totalDistance: 100
+penaltyMultiplier: 1.0
+violationDetectionMode: 'moderate'
+
+# Game settings
+minPlayersPerTeam: 1
+roundCount: 1
+
+# Input mode settings
+inputModes:
+  - 'shake'
+  - 'tap'
+  - 'tilt'
+  - 'swipe'
+inputModeRotation: 'sequential'
+previewDurationMs: 3000
+
+# Input mode labels
+inputModeShakeLabel: '🤲 SHAKE'
+inputModeTapLabel: '👆 TAP'
+inputModeTiltLabel: '⬅️➡️ TILT'
+inputModeSwipeLabel: '🔄 SWIPE'
+inputModeSoundLabel: '🔊 CLAP'
+inputModeTargetLabel: '🎯 TAP'
+inputModeSpinnerLabel: '🎡 SPIN'
+
+# Input mode instructions
+inputModeShakeInstructions: 'Shake your phone as hard as you can!'
+inputModeTapInstructions: 'Tap the screen as fast as possible!'
+inputModeTiltInstructions: 'Tilt your phone left and right!'
+inputModeSwipeInstructions: 'Swipe across the screen repeatedly!'
+inputModeSoundInstructions: 'Clap and cheer! Louder = more progress!'
+inputModeTargetInstructions: 'Tap the targets as fast as you can!'
+inputModeSpinnerInstructions: 'Flick to spin the wheel!'
+
+# Tap input settings
+tapSensitivity: 1.0
+
+# Tilt input settings
+tiltThreshold: 8
+tiltWeight: 0.02
+
+# Swipe input settings
+swipeWeight: 0.5
+
+# Sound input settings
+soundThreshold: -50
+soundWeight: 0.01
+
+# Target tapping settings
+targetDurationMs: 800
+targetCount: 1
+targetWeight: 1.0
+
+# Spinner settings
+spinnerWeight: 0.02
 
 # Team selection view
 teamSelectTitle: 'Choose Your Team'

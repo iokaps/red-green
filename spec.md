@@ -22,12 +22,14 @@ A team-based accelerometer game where players shake their phones to advance thei
 ## Game Phases
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  LOBBY → GO (3-7s) → WARNING (1.5s) → FREEZE (2-5s) → repeat│
-│                                              ↓              │
-│                                           VICTORY           │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│ LOBBY → PREVIEW (3s) → GO (3-7s) → WARNING (1.5s) → FREEZE (2-5s) │
+│                                                           ↓        │
+│                                                        VICTORY      │
+└───────────────────────────────────────────────────────────────────┘
 ```
+
+Each round cycles through PREVIEW → GO → WARNING → FREEZE, then repeats with a new input mode.
 
 ### 1. LOBBY
 
@@ -36,22 +38,30 @@ A team-based accelerometer game where players shake their phones to advance thei
 - Motion permission must be granted before joining team
 - Game starts when host clicks "Start Game"
 
-### 2. GO Phase (3-7 seconds, variable)
+### 2. PREVIEW Phase (3 seconds, configurable)
 
-- Screen shows green "GO! SHAKE!"
+- Screen shows the input mode icon and instructions for this round
+- Examples: "🤲 SHAKE", "👆 TAP", "🔄 SWIPE", "🔊 CLAP", "🎯 TAP", "⬅️➡️ TILT", "🎡 SPIN"
+- Gives players time to understand what they need to do
+- Countdown timer shows when GO phase will start
+- Changes each round to keep gameplay fresh
+
+### 3. GO Phase (3-7 seconds, variable)
+
+- Screen shows green "GO!" and the current input mode
 - Guard Eye is asleep/looking away
-- Players shake phones to contribute to team progress
-- Shake data accumulated locally, submitted at phase end
-- **MVP Spotlight**: Top shaker from each team displayed on presenter
+- Players perform the active input mode to contribute to team progress
+- Input data accumulated locally, submitted at phase end
+- **MVP Spotlight**: Top performer from each team displayed on presenter
 
-### 3. WARNING Phase (1.5 seconds)
+### 4. WARNING Phase (1.5 seconds)
 
 - Screen shows yellow "WARNING!"
 - Guard Eye begins waking up animation
-- Players should stop shaking and prepare to freeze
-- Team progress calculated from GO phase shake data
+- Players should prepare to freeze
+- Team progress calculated from GO phase input data
 
-### 4. FREEZE Phase (2-5 seconds, variable)
+### 5. FREEZE Phase (2-5 seconds, variable)
 
 - Screen shows red "FREEZE!"
 - Guard Eye actively scanning
@@ -66,41 +76,67 @@ A team-based accelerometer game where players shake their phones to advance thei
 - Confetti celebration on all screens
 - **Traitor Reveal**: If traitor mode enabled, traitor identity shown
 
-## Shake Mechanics
+## Input Modes
 
-### Detection
+Each round cycles through a different input mode. The PREVIEW phase shows what to do before each round starts.
 
-- Uses `DeviceMotionEvent.accelerationIncludingGravity`
-- Magnitude = √(x² + y² + z²) - 9.8 (subtract gravity baseline)
-- `isShaking` = magnitude > `shakeThreshold` (default: 12 m/s²)
+### Available Input Modes
 
-### Progress Formula
+1. **SHAKE** 🤲 - Shake device (accelerometer)
+   - Magnitude = √(x² + y² + z²) - 9.8
+   - Progress: `totalMagnitude * magnitudeWeight + activeCount * activeCountWeight`
 
-```
-teamProgress = (totalMagnitude * magnitudeWeight) + (activeShakers * activeCountWeight)
-```
+2. **TAP** 👆 - Tap the screen as fast as possible
+   - Progress: `tapCount * tapSensitivity`
 
-- `totalMagnitude`: Sum of all shake magnitudes from team members
-- `activeShakers`: Count of team members who shook during phase
-- Weights configurable in config.yaml for tuning
+3. **TILT** ⬅️➡️ - Tilt phone side-to-side
+   - Uses X/Y acceleration axes
+   - Progress: `tiltMagnitude * tiltWeight`
 
-### Shake Reporting
+4. **SWIPE** 🔄 - Swipe across the screen repeatedly
+   - Directional swipes (up/down/left/right)
+   - Progress: `swipeCount * swipeWeight`
 
-- Players accumulate shake data locally during GO phase
+5. **SOUND** 🔊 - Clap and cheer (microphone detection)
+   - Loudness threshold: -50dB (configurable)
+   - Progress: `volumeLevel * soundWeight`
+
+6. **TARGET** 🎯 - Tap targets that appear on screen
+   - Skill-based: targets appear briefly, tap to score
+   - Progress: `hitCount * targetWeight`
+
+7. **SPINNER** 🎡 - Flick to spin a wheel
+   - Spin momentum accumulates
+   - Progress: `spinMomentum * spinnerWeight`
+
+### Input Mode Rotation
+
+- **Sequential** (default): Cycles through modes in order (SHAKE → TAP → TILT → SWIPE → SOUND → TARGET → SPINNER)
+- **Random**: Randomly selects a mode each round
+
+Configure via `inputModeRotation: 'sequential'` or `'random'`
+
+### Progress Detection
+
+All input modes report their contribution during the GO phase:
+
+- Players accumulate data locally during GO phase
 - Single batched report submitted when phase transitions
-- Report contains: `{ totalMagnitude, maxMagnitude, shakeCount, wasActive }`
+- Report contains: `{ totalMagnitude, wasActive }`
+- Team progress calculated: `totalProgress + activeCount`
 
 ## Penalty System
 
 ### Freeze Violation Detection
 
-- During FREEZE, any magnitude > `shakeThreshold` = violation
+- During FREEZE, any input detected = violation (sensitivity depends on mode)
 - Violations tracked per player
 
 ### Team Penalty
 
 - If `violators / teamSize >= freezeViolationThreshold` (default: 5%)
-- Entire team position reduced by `penaltyDistance` (default: 10 units)
+- Entire team position reduced by `penaltyDistance * penaltyMultiplier`
+- Penalty scales with difficulty: `violationDetectionMode` ('strict', 'moderate', 'relaxed')
 - Minimum position is 0 (can't go negative)
 - Visual penalty flash on presenter screen
 

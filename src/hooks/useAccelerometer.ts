@@ -90,10 +90,9 @@ export function useAccelerometer(
 			// No permission needed, auto-grant
 			setPermissionGranted(true);
 			setPermissionPending(false);
-		} else {
-			// iOS - permission needed but we can't check state without user gesture
-			setPermissionPending(false);
 		}
+		// iOS - permission needed but we can't check state without user gesture
+		// Keep permissionPending as true until requestPermission is called
 	}, [needsPermission]);
 
 	// Handle device motion events

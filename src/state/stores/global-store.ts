@@ -1,7 +1,21 @@
 import { kmClient } from '@/services/km-client';
 
-export type GamePhase = 'lobby' | 'go' | 'warning' | 'freeze' | 'victory';
+export type GamePhase =
+	| 'lobby'
+	| 'preview'
+	| 'go'
+	| 'warning'
+	| 'freeze'
+	| 'victory';
 export type TeamId = 'red' | 'blue';
+export type InputMode =
+	| 'shake'
+	| 'tap'
+	| 'tilt'
+	| 'swipe'
+	| 'sound'
+	| 'target'
+	| 'spinner';
 
 export interface TeamState {
 	name: string;
@@ -35,6 +49,8 @@ export interface GlobalState {
 	gamePhase: GamePhase;
 	phaseStartTimestamp: number;
 	currentPhaseDuration: number; // Variable phase length
+	currentRound: number;
+	currentInputMode: InputMode;
 
 	teams: {
 		red: TeamState;
@@ -68,6 +84,8 @@ const initialState: GlobalState = {
 	gamePhase: 'lobby',
 	phaseStartTimestamp: 0,
 	currentPhaseDuration: 0,
+	currentInputMode: 'shake' as InputMode,
+	currentRound: 1,
 
 	teams: {
 		red: {

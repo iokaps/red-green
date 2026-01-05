@@ -38,6 +38,8 @@ export const PresenterGameView: React.FC = () => {
 		gamePhase,
 		phaseStartTimestamp,
 		currentPhaseDuration,
+		currentRound,
+		currentInputMode,
 		teams,
 		winningTeam,
 		playerTeams,
@@ -137,15 +139,21 @@ export const PresenterGameView: React.FC = () => {
 
 			{/* Phase Timer */}
 			{gamePhase !== 'lobby' && (
-				<div
-					className={cn(
-						'rounded-xl px-8 py-4 text-4xl font-bold tabular-nums',
-						gamePhase === 'go' && 'bg-green-500 text-white',
-						gamePhase === 'warning' && 'bg-yellow-400 text-yellow-900',
-						gamePhase === 'freeze' && 'bg-red-500 text-white'
-					)}
-				>
-					<KmTimeCountdown ms={timeRemaining} display="s" />
+				<div className="flex flex-col items-center gap-2">
+					<div className="text-xl font-bold text-slate-500">
+						ROUND {currentRound} • {currentInputMode.toUpperCase()}
+					</div>
+					<div
+						className={cn(
+							'rounded-xl px-8 py-4 text-4xl font-bold tabular-nums',
+							gamePhase === 'go' && 'bg-green-500 text-white',
+							gamePhase === 'warning' && 'bg-yellow-400 text-yellow-900',
+							gamePhase === 'freeze' && 'bg-red-500 text-white',
+							gamePhase === 'preview' && 'bg-slate-500 text-white'
+						)}
+					>
+						<KmTimeCountdown ms={timeRemaining} display="s" />
+					</div>
 				</div>
 			)}
 

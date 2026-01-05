@@ -1,3 +1,4 @@
+import { GameAudioController } from '@/components/game-audio-controller';
 import { withKmProviders } from '@/components/with-km-providers';
 import { config } from '@/config';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
 	if (started || gamePhase !== 'lobby') {
 		return (
 			<HostPresenterLayout.Root>
+				<GameAudioController />
 				<HostPresenterLayout.Main className="p-0">
 					<PresenterGameView />
 				</HostPresenterLayout.Main>
@@ -44,6 +46,7 @@ const App: React.FC = () => {
 	// Lobby view with QR code
 	return (
 		<HostPresenterLayout.Root>
+			<GameAudioController />
 			<HostPresenterLayout.Header />
 
 			<HostPresenterLayout.Main>

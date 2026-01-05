@@ -1,3 +1,5 @@
+import { GameAudioController } from '@/components/game-audio-controller';
+import { withKmProviders } from '@/components/with-km-providers';
 import { config } from '@/config';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useGlobalController } from '@/hooks/useGlobalController';
@@ -21,11 +23,20 @@ const App: React.FC = () => {
 	useGlobalController();
 	const { title } = config;
 	const isHost = kmClient.clientContext.mode === 'host';
-	const { started, showPresenterQr, gamePhase } = useSnapshot(
+	const { started, showPresenterQr, gamePhase, playerTeams } = useSnapshot(
 		globalStore.proxy
 	);
 	const [buttonCooldown, setButtonCooldown] = React.useState(true);
 	useDocumentTitle(title);
+
+	// Check start conditions
+	const redCount = Object.values(playerTeams).filter((t) => t === 'red').length;
+	const blueCount = Object.values(playerTeams).filter(
+		(t) => t === 'blue'
+	).length;
+	const canStart =
+		redCount >= config.minPlayersPerTeam &&
+		blueCount >= config.minPlayersPerTeam;
 
 	// Button cooldown to prevent accidentally spamming start/stop
 	React.useEffect(() => {
@@ -66,6 +77,7 @@ const App: React.FC = () => {
 
 	return (
 		<HostPresenterLayout.Root>
+			<GameAudioController />
 			<HostPresenterLayout.Header />
 			<HostPresenterLayout.Main>
 				<div className="space-y-6">
@@ -88,7 +100,12 @@ const App: React.FC = () => {
 							type="button"
 							className="km-btn-primary"
 							onClick={handleStartGame}
-							disabled={buttonCooldown}
+							disabled={buttonCooldown || !canStart}
+							title={
+								!canStart
+									? `Need at least ${config.minPlayersPerTeam} players per team`
+									: undefined
+							}
 						>
 							<CirclePlay className="size-5" />
 							{config.startButton}
@@ -143,4 +160,4 @@ const App: React.FC = () => {
 	);
 };
 
-export default App;
+export default withKmProviders(App);

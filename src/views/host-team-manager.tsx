@@ -65,14 +65,17 @@ export const HostTeamManager: React.FC = () => {
 			{/* Team Columns */}
 			<div className="grid grid-cols-2 gap-4">
 				{/* Red Team */}
-				<div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
-					<div className="mb-4 flex items-center justify-between">
-						<h3 className="font-bold text-red-700">{teams.red.name}</h3>
-						<span className="rounded-full bg-red-200 px-2 py-1 text-xs font-medium text-red-700">
+				<div className="overflow-hidden rounded-xl border-2 border-red-200 bg-red-50">
+					<div
+						className="flex items-center justify-between p-4 text-white"
+						style={{ backgroundColor: teams.red.color }}
+					>
+						<h3 className="font-bold">{teams.red.name}</h3>
+						<span className="rounded-full bg-white/20 px-2 py-1 text-xs font-medium">
 							{teamPlayers.red.length}
 						</span>
 					</div>
-					<ul className="space-y-2">
+					<ul className="space-y-2 p-4">
 						{teamPlayers.red.map((player) => (
 							<li
 								key={player.id}
@@ -106,14 +109,17 @@ export const HostTeamManager: React.FC = () => {
 				</div>
 
 				{/* Blue Team */}
-				<div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
-					<div className="mb-4 flex items-center justify-between">
-						<h3 className="font-bold text-blue-700">{teams.blue.name}</h3>
-						<span className="rounded-full bg-blue-200 px-2 py-1 text-xs font-medium text-blue-700">
+				<div className="overflow-hidden rounded-xl border-2 border-blue-200 bg-blue-50">
+					<div
+						className="flex items-center justify-between p-4 text-white"
+						style={{ backgroundColor: teams.blue.color }}
+					>
+						<h3 className="font-bold">{teams.blue.name}</h3>
+						<span className="rounded-full bg-white/20 px-2 py-1 text-xs font-medium">
 							{teamPlayers.blue.length}
 						</span>
 					</div>
-					<ul className="space-y-2">
+					<ul className="space-y-2 p-4">
 						{teamPlayers.blue.map((player) => (
 							<li
 								key={player.id}

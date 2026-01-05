@@ -10,12 +10,14 @@ import { useServerTimer } from './useServerTime';
  */
 function getNextPhase(phase: GamePhase): GamePhase {
 	switch (phase) {
+		case 'preview':
+			return 'go';
 		case 'go':
 			return 'warning';
 		case 'warning':
 			return 'freeze';
 		case 'freeze':
-			return 'go';
+			return 'preview';
 		default:
 			return phase;
 	}

@@ -3,6 +3,7 @@ import { kmClient } from '@/services/km-client';
 import {
 	globalStore,
 	type GamePhase,
+	type InputMode,
 	type MvpPlayer,
 	type ShakeReport,
 	type TeamId
@@ -14,6 +15,26 @@ import { playerStore } from '../stores/player-store';
  */
 function getRandomDuration(minMs: number, maxMs: number): number {
 	return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+}
+
+/**
+ * Get next input mode based on rotation setting
+ */
+function getNextInputMode(currentRound: number): InputMode {
+	const { inputModes, inputModeRotation } = config;
+
+	if (inputModes.length === 0) {
+		return 'shake'; // Fallback
+	}
+
+	if (inputModeRotation === 'random') {
+		const randomIndex = Math.floor(Math.random() * inputModes.length);
+		return inputModes[randomIndex] as InputMode;
+	}
+
+	// Sequential (default)
+	const index = (currentRound - 1) % inputModes.length;
+	return inputModes[index] as InputMode;
 }
 
 export const gameActions = {
@@ -72,6 +93,19 @@ export const gameActions = {
 		await kmClient.transact([globalStore], ([globalState]) => {
 			globalState.gamePhase = phase;
 			globalState.phaseStartTimestamp = kmClient.serverTimestamp();
+
+			// Update input mode and increment round when starting a new GO phase
+			if (phase === 'go') {
+				globalState.currentRound += 1;
+				globalState.currentInputMode = getNextInputMode(
+					globalState.currentRound
+				);
+			}
+
+			// Calculate duration for preview phase
+			if (phase === 'preview') {
+				globalState.currentPhaseDuration = config.previewDurationMs;
+			}
 
 			// Calculate variable duration if enabled
 			if (config.variablePhasesEnabled) {
@@ -183,8 +217,24 @@ export const gameActions = {
 	 */
 	async checkViolationsAndPenalize() {
 		await kmClient.transact([globalStore], ([globalState]) => {
-			const { freezeViolationThreshold, penaltyDistance } = config;
+			const {
+				freezeViolationThreshold,
+				penaltyDistance,
+				penaltyMultiplier,
+				violationDetectionMode
+			} = config;
 			const traitorId = globalState.traitorId;
+
+			// Adjust threshold based on detection mode
+			let effectiveThreshold = freezeViolationThreshold;
+			if (violationDetectionMode === 'strict') {
+				effectiveThreshold = 0; // Any violation triggers penalty
+			} else if (violationDetectionMode === 'relaxed') {
+				effectiveThreshold = freezeViolationThreshold * 2;
+			}
+
+			// Calculate effective penalty distance
+			const effectivePenalty = penaltyDistance * penaltyMultiplier;
 
 			for (const teamId of ['red', 'blue'] as const) {
 				const opposingTeamId = teamId === 'red' ? 'blue' : 'red';
@@ -222,11 +272,11 @@ export const gameActions = {
 				const violationRate =
 					nonTraitorCount > 0 ? violatorCount / nonTraitorCount : 0;
 
-				if (violationRate >= freezeViolationThreshold) {
+				if (violationRate >= effectiveThreshold) {
 					// Apply penalty to this team
 					globalState.teams[teamId].position = Math.max(
 						0,
-						globalState.teams[teamId].position - penaltyDistance
+						globalState.teams[teamId].position - effectivePenalty
 					);
 					globalState.teams[teamId].lastPenaltyTimestamp =
 						kmClient.serverTimestamp();
@@ -312,6 +362,8 @@ export const gameActions = {
 			globalState.gamePhase = 'lobby';
 			globalState.phaseStartTimestamp = 0;
 			globalState.currentPhaseDuration = 0;
+			globalState.currentInputMode = 'shake';
+			globalState.currentRound = 1;
 			globalState.teams.red.position = 0;
 			globalState.teams.red.lastPenaltyTimestamp = 0;
 			globalState.teams.blue.position = 0;

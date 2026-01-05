@@ -61,6 +61,75 @@ export const schema = z.object({
 	freezeViolationThreshold: z.number().default(0.05),
 	penaltyDistance: z.number().default(10),
 	totalDistance: z.number().default(100),
+	penaltyMultiplier: z.number().default(1.0),
+	violationDetectionMode: z
+		.enum(['strict', 'moderate', 'relaxed'])
+		.default('moderate'),
+
+	// Game settings
+	minPlayersPerTeam: z.number().default(1),
+	roundCount: z.number().default(1),
+
+	// Input mode settings
+	inputModes: z
+		.array(
+			z.enum(['shake', 'tap', 'tilt', 'swipe', 'sound', 'target', 'spinner'])
+		)
+		.default(['shake', 'tap', 'tilt', 'swipe']),
+	inputModeRotation: z.enum(['sequential', 'random']).default('sequential'),
+	previewDurationMs: z.number().default(3000),
+
+	// Input mode labels
+	inputModeShakeLabel: z.string().default('🤲 SHAKE'),
+	inputModeTapLabel: z.string().default('👆 TAP'),
+	inputModeTiltLabel: z.string().default('⬅️➡️ TILT'),
+	inputModeSwipeLabel: z.string().default('🔄 SWIPE'),
+	inputModeSoundLabel: z.string().default('🔊 CLAP'),
+	inputModeTargetLabel: z.string().default('🎯 TAP'),
+	inputModeSpinnerLabel: z.string().default('🎡 SPIN'),
+
+	// Input mode instructions
+	inputModeShakeInstructions: z
+		.string()
+		.default('Shake your phone as hard as you can!'),
+	inputModeTapInstructions: z
+		.string()
+		.default('Tap the screen as fast as possible!'),
+	inputModeTiltInstructions: z
+		.string()
+		.default('Tilt your phone left and right!'),
+	inputModeSwipeInstructions: z
+		.string()
+		.default('Swipe across the screen repeatedly!'),
+	inputModeSoundInstructions: z
+		.string()
+		.default('Clap and cheer! Louder = more progress!'),
+	inputModeTargetInstructions: z
+		.string()
+		.default('Tap the targets as fast as you can!'),
+	inputModeSpinnerInstructions: z.string().default('Flick to spin the wheel!'),
+
+	// Tap input settings
+	tapSensitivity: z.number().default(1.0),
+
+	// Tilt input settings
+	tiltThreshold: z.number().default(8),
+	tiltWeight: z.number().default(0.02),
+
+	// Swipe input settings
+	swipeWeight: z.number().default(0.5),
+
+	// Sound input settings
+	soundThreshold: z.number().default(-50),
+	soundWeight: z.number().default(0.01),
+
+	// Target tapping settings
+	targetDurationMs: z.number().default(800),
+	targetCount: z.number().default(1),
+	targetWeight: z.number().default(1.0),
+
+	// Spinner settings
+	spinnerWeight: z.number().default(0.02),
 
 	// Team selection view
 	teamSelectTitle: z.string().default('Choose Your Team'),
